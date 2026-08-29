@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recreation Room - U.S. Outpost 31</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #d0d8e8;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .game-container {
+            position: relative;
+            width: 100%;
+            max-width: 1100px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.9), 0 0 20px rgba(0, 150, 255, 0.15);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .game-image {
+            width: 100%;
+            display: block;
+        }
+
+        .hotspot {
+            position: absolute;
+            background-color: rgba(0, 180, 255, 0.1); 
+            border: 2px dashed rgba(0, 180, 255, 0.4);
+            cursor: pointer;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .hotspot:hover {
+            background-color: rgba(0, 180, 255, 0.35);
+            border-color: rgba(0, 220, 255, 0.9);
+        }
+
+        /* Hotspots adaptados a rec_room.jpg */
+        #puerta    { top: 24%; left: 82%; width: 15%; height: 52%; }
+
+        #poolTable  { top: 58%; left: 4%; width: 55%; height: 40%; }
+        #arcade     { top: 35%; left: 16%; width: 22%; height: 30%; }
+        #chessTable { top: 53%; left: 52%; width: 15%; height: 25%; }
+        #tvShelf    { top: 22%; left: 56%; width: 19%; height: 32%; }
+        #bulletin   { top: 30%; left: 5%; width: 7%; height: 20%; }
+
+        .player-hud {
+            position: fixed;
+            top: 15px;
+            right: 20px;
+            background: rgba(5, 11, 20, 0.95);
+            border: 1px solid #0055ff;
+            color: #00f0ff;
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+            z-index: 1500;
+            box-shadow: 0 0 12px rgba(0, 85, 255, 0.4);
+            border-radius: 2px;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #141a24;
+            border: 1px solid #2a3b55;
+            border-radius: 8px;
+            padding: 25px;
+            width: 90%;
+            max-width: 450px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 5px 25px rgba(0,120,255,0.2);
+            position: relative;
+            text-align: left;
+        }
+
+        .modal-content h3 {
+            margin-top: 0;
+            color: #4da6ff;
+            font-size: 1.2rem;
+            border-bottom: 1px solid #22304a;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+
+        .modal-content p {
+            line-height: 1.6;
+            color: #b8c7e0;
+            font-size: 0.95rem;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 1.5rem;
+            color: #7a92b8;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+
+        .close-btn:hover {
+            color: #fff;
+        }
+
+        .drawer-img {
+            width: 100%;
+            max-height: 250px;
+            object-fit: contain;
+            margin-top: 15px;
+            border-radius: 6px;
+            border: 1px solid #0080ff;
+            cursor: pointer;
+        }
+
+        .drawer-btn {
+            background-color: #0080ff;
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .drawer-btn:hover {
+            background-color: #0066cc;
+        }
+
+        #fullscreenViewer {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+            z-index: 3000;
+            cursor: pointer;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #fullscreenViewer img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+
+        .back-btn {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background-color: #141a24;
+            color: #4da6ff;
+            border: 1px solid #2a3b55;
+            padding: 8px 12px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: bold;
+            text-decoration: none;
+            border-radius: 4px;
+            z-index: 1500;
+        }
+
+        #timerContainer {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background: linear-gradient(135deg, #0d131f 0%, #162235 100%);
+            color: #7df9ff;
+            border: 2px solid #2e4a70;
+            box-shadow: inset 0 0 10px rgba(0, 180, 255, 0.2), 0 0 12px rgba(0, 150, 255, 0.3);
+            padding: 8px 14px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            border-radius: 6px;
+            z-index: 1500;
+            text-shadow: 0 0 6px rgba(125, 249, 255, 0.6);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="player-hud" id="playerHud">IDENTIDAD: CARGANDO...</div>
+<!--
+    <div id="timerContainer">EST: <span id="countdown">00:01</span></div>
+    <a href="#" id="backBtn" class="back-btn" onclick="playClick(); volverAlMapa(event)">VOLVER AL MAPA</a>
+-->
+    <div class="game-container" id="gameContainer">
+        <img src="images/rec_room.jpg" alt="Recreation Room - Outpost 31" class="game-image">
+<!-- Comentario -->
+        <div class="hotspot" id="puerta" onclick="playClick(); volverAlMapa(event)"></div>
+
+<!--          <div class="hotspot" id="poolTable" onclick="playClick(); openModal('Mesa de Billar', 'La mesa de billar muestra una partida a medias que quedó congelada en el tiempo. Las tizas y los tacos descansan sobre el paño desgastado.')"></div>
+         <div class="hotspot" id="arcade" onclick="playClick(); openModal('Máquinas Recreativas', 'Las clásicas arcade de Pac-Man y otras máquinas están completamente apagadas y frías al tacto.')"></div>
+         <div class="hotspot" id="chessTable" onclick="playClick(); openModal('Mesa de Ajedrez', 'Una partida de ajedrez inacabada. Las piezas de plástico están dispuestas sobre el tablero auxiliar rodeado de vasos de plástico.')"></div>
+         <div class="hotspot" id="tvShelf" onclick="playClick(); openModal('Televisor y Estantería', 'Un viejo televisor de tubo y estantes llenos de cintas de vídeo y manuales cubiertos por una fina capa de escarcha.')"></div>
+         <div class="hotspot" id="bulletin" onclick="playClick(); openModal('Panel Informativo', 'Avisos y normativas de la sala de recreo parcialmente borrados por la humedad y el frío extremo.')"></div>     -->
+    </div>
+
+    <div id="gameModal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="playClick(); closeModal()">&times;</button>
+            <h3 id="modalTitle">Título</h3>
+            <div id="modalBody">
+                <p id="modalText">Texto...</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="fullscreenViewer" onclick="playClick(); closeFullscreen()">
+        <img id="fullscreenImg" src="" alt="Pantalla completa">
+    </div>
+
+    <script>
+        let jugadorActual = "JUGADOR";
+
+        function actualizarIdentidadJugador() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const jugadorUrl = urlParams.get('jugador');
+
+            if (jugadorUrl && jugadorUrl.trim() !== "") {
+                jugadorActual = jugadorUrl.trim();
+                localStorage.setItem('jugador_activo_global', jugadorActual);
+            } else {
+                const jugadorGuardado = localStorage.getItem('jugador_activo_global');
+                if (jugadorGuardado && jugadorGuardado.trim() !== "") {
+                    jugadorActual = jugadorGuardado;
+                } else {
+                    try {
+                        if (window.parent && window.parent !== window) {
+                            const parentNameElem = window.parent.document.getElementById('char-name');
+                            if (parentNameElem) {
+                                const textoPadre = parentNameElem.innerText.trim();
+                                if (textoPadre !== "" && textoPadre !== "Cargando...") {
+                                    jugadorActual = textoPadre;
+                                    localStorage.setItem('jugador_activo_global', jugadorActual);
+                                }
+                            }
+                        }
+                    } catch (e) {}
+                }
+            }
+
+            document.getElementById('playerHud').innerText = `IDENTIDAD: ${jugadorActual.toUpperCase()}`;
+            localStorage.setItem('jugador_nombre_real', jugadorActual);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            actualizarIdentidadJugador();
+        });
+
+        function playClick() {
+            const clickAudio = new Audio('audio/click.mp3');
+            clickAudio.play().catch(e => console.log("Audio error:", e));
+        }
+
+        let timeLeft = 1;
+        const countdownEl = document.getElementById('countdown');
+        const timerContainerEl = document.getElementById('timerContainer');
+        const backBtnEl = document.getElementById('backBtn');
+
+        const timerInterval = setInterval(() => {
+            timeLeft--;
+            if (timeLeft >= 0) {
+                let formattedTime = "00:" + (timeLeft < 1 ? "0" : "") + timeLeft;
+                countdownEl.innerText = formattedTime;
+            }
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                const clingAudio = new Audio('audio/cling1.mp3');
+                clingAudio.play().catch(e => console.log("Audio error:", e));
+                timerContainerEl.style.display = 'none';
+                backBtnEl.style.display = 'block';
+            }
+        }, 100);
+
+        function openModal(title, text) {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalBody').innerHTML = `<p id="modalText">${text}</p>`;
+            document.getElementById('gameModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('gameModal').style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            let modal = document.getElementById('gameModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+
+        function volverAlMapa(event) {
+            event.preventDefault();
+            const doorAudio = new Audio('audio/opendoor.mp3');
+            doorAudio.play().catch(e => console.log("Audio error:", e));
+            setTimeout(() => {
+                window.location.href = `mapa.html?jugador=${encodeURIComponent(jugadorActual)}`;
+            }, 1500);
+        }
+    </script>
+</body>
+</html>

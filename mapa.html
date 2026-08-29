@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plano de Escape - Estación Ártica Outpost 31</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #050b14;
+            --accent-glow: #00f0ff;
+            --accent-color: #0055ff;
+            --text-main: #c0dfef;
+            --text-muted: #5a7d9b;
+            --border-color: #1a3a5c;
+            --font-family: 'Share Tech Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            font-family: var(--font-family);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            background-image: radial-gradient(circle, #0d1e33 0%, #03060a 100%);
+        }
+
+        /* HUD indicador de sesión del jugador actual en la esquina superior derecha */
+        .player-hud {
+            position: fixed;
+            top: 15px;
+            right: 20px;
+            background: rgba(5, 11, 20, 0.95);
+            border: 1px solid var(--accent-color);
+            color: var(--accent-glow);
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+            z-index: 100;
+            box-shadow: 0 0 12px rgba(0, 85, 255, 0.4);
+            border-radius: 2px;
+        }
+
+        .map-container {
+            position: relative;
+            max-width: 95vw;
+            max-height: 92vh;
+            box-shadow: 0 0 40px rgba(0, 140, 255, 0.2);
+            border: 2px solid var(--border-color);
+            border-radius: 4px;
+            background-color: #000;
+        }
+
+        .map-container img {
+            display: block;
+            max-width: 100%;
+            max-height: 88vh;
+            object-fit: contain;
+            filter: brightness(0.9) contrast(1.1) hue-rotate(170deg);
+        }
+
+        /* Hotspots interactivos de estilo terminal 80s (Azules) */
+        .hotspot {
+            position: absolute;
+            width: 28px;
+            height: 28px;
+            background-color: rgba(0, 85, 255, 0.65);
+            border: 2px solid var(--accent-glow);
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.7);
+            transition: all 0.2s;
+            transform: translate(-50%, -50%);
+            z-index: 5;
+        }
+
+        .hotspot::after {
+            content: "◆";
+            color: var(--accent-glow);
+            font-size: 0.7rem;
+        }
+
+        /* Estilo para el icono de candado debajo del hotspot */
+        .hotspot-lock {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.2rem;
+            margin-top: 2px;
+            pointer-events: none;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.9));
+        }
+
+        .hotspot:hover {
+            transform: translate(-50%, -50%) scale(1.25);
+            background-color: var(--accent-color);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        /* Tooltip con nombre de la habitación */
+        .hotspot .tooltip {
+            position: absolute;
+            bottom: 130%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(5, 11, 20, 0.95);
+            color: var(--accent-glow);
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            border: 1px solid var(--accent-color);
+            border-radius: 2px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.8);
+        }
+
+        .hotspot:hover .tooltip {
+            opacity: 1;
+        }
+
+        /* Ventana Modal de Clave Estilo Terminal */
+        #codeModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(3, 6, 10, 0.88);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1100;
+            backdrop-filter: blur(3px);
+        }
+
+        .code-modal-box {
+            background-color: #08111e;
+            border: 2px solid var(--accent-color);
+            padding: 30px;
+            width: 380px;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: 0 0 35px rgba(0, 85, 255, 0.3);
+        }
+
+        .code-modal-box h3 {
+            font-size: 1.1rem;
+            color: var(--accent-glow);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .code-modal-box p {
+            font-size: 0.9rem;
+            color: var(--text-main);
+            line-height: 1.4;
+        }
+
+        .code-modal-input {
+            background: #02050a;
+            border: 1px solid var(--border-color);
+            color: var(--accent-glow);
+            font-family: var(--font-family);
+            font-size: 1.2rem;
+            padding: 10px;
+            text-align: center;
+            letter-spacing: 3px;
+            outline: none;
+            border-radius: 2px;
+        }
+
+        .code-modal-input:focus {
+            border-color: var(--accent-glow);
+            box-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+        }
+
+        .code-modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .code-modal-btn {
+            background: #0d213a;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 16px;
+            font-family: var(--font-family);
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            border-radius: 2px;
+            letter-spacing: 1px;
+        }
+
+        .code-modal-btn:hover {
+            border-color: var(--accent-glow);
+            color: var(--accent-glow);
+        }
+
+        .error-msg {
+            font-size: 0.8rem;
+            color: #ff3355;
+            height: 15px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HUD INDICADOR DE JUGADOR ACTIVO EN LA ESQUINA SUPERIOR DERECHA -->
+    <div class="player-hud" id="playerHud">IDENTIDAD: CARGANDO...</div>
+
+    <!-- VENTANA MODAL PARA ACCESO A ZONAS -->
+    <div id="codeModal">
+        <div class="code-modal-box">
+            <h3 id="modalTitle">ACCESO RESTRINGIDO</h3>
+            <p id="modalDesc">Introduce la clave de acceso:</p>
+            <input type="text" id="modalCodeInput" class="code-modal-input" placeholder="••••" autocomplete="off" onkeypress="handleModalKey(event)">
+            <span id="modalError" class="error-msg"></span>
+            <div class="code-modal-buttons">
+                <button class="code-modal-btn" onclick="submitModalCode()" style="background: var(--accent-color); color: white; border-color: var(--accent-glow);">ENTRAR</button>
+                <button class="code-modal-btn" onclick="closeCodeModal()">CANCELAR</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="map-container">
+        <img src="images/mapa.gif" alt="Plano de Escape de la Estación Ártica">
+        
+        <!-- 1. Edificio de Vehículos -->
+        <div class="hotspot" id="hotspot-vehiculos" style="top: 22%; left: 16%;" onclick="checkRoomAccess('vehiculos', 'Edificio de Vehículos', 'vehiculos.html')">
+            <span class="tooltip">Edificio de Vehículos</span>
+        </div>
+
+        <!-- 2. Cobertizo -->
+        <div class="hotspot" id="hotspot-cobertizo" style="top: 10%; left: 32%;" onclick="checkRoomAccess('cobertizo', 'Cobertizo', 'cobertizo.html')">
+            <span class="tooltip">Cobertizo</span>
+        </div>
+
+        <!-- 3. Canera -->
+        <div class="hotspot" id="hotspot-canera" style="top: 41%; left: 11%;" onclick="checkRoomAccess('canera', 'Canera', 'canera.html')">
+            <span class="tooltip">Canera</span>
+        </div>
+
+        <!-- 4. Despacho del Jefe -->
+        <div class="hotspot" id="hotspot-despacho" style="top: 55%; left: 11%;" onclick="checkRoomAccess('despacho', 'Despacho del Jefe', 'despacho.html')">
+            <span class="tooltip">Despacho del Jefe</span>
+        </div>
+
+        <!-- 5. Almacén Room 1 -->
+        <div class="hotspot" id="hotspot-almacen1" style="top: 76%; left: 11%;" onclick="checkRoomAccess('almacen1', 'Almacén 1', 'almacen1.html')">
+            <span class="tooltip">Almacén Room 1</span>
+        </div>
+
+        <!-- 6. Oficina Común -->
+        <div class="hotspot" id="hotspot-oficina" style="top: 48%; left: 30%;" onclick="checkRoomAccess('oficina', 'Oficina común', 'oficina.html')">
+            <span class="tooltip">Oficina común</span>
+        </div>
+
+        <!-- 7. Sala de Juegos (SIEMPRE DESBLOQUEADA) -->
+        <div class="hotspot" id="hotspot-juegos" style="top: 67%; left: 29%;" onclick="goToRoom('sala_recreo.html')">
+            <span class="tooltip">Sala de Recreo</span>
+        </div>
+
+        <!-- 8. Dormitorios -->
+        <div class="hotspot" id="hotspot-dormitorios" style="top: 48%; left: 45%;" onclick="checkRoomAccess('dormitorios', 'Dormitorios', 'dormitorios.html')">
+            <span class="tooltip">Dormitorios</span>
+        </div>
+
+        <!-- 9. Cocina -->
+        <div class="hotspot" id="hotspot-cocina" style="top: 67%; left: 45%;" onclick="checkRoomAccess('cocina', 'Cocina', 'cocina.html')">
+            <span class="tooltip">Cocina</span>
+        </div>
+
+        <!-- 10. Baño -->
+        <div class="hotspot" id="hotspot-bano" style="top: 48%; left: 60%;" onclick="checkRoomAccess('bano', 'Baño', 'bano.html')">
+            <span class="tooltip">Baño</span>
+        </div>
+
+        <!-- 11. Comedor -->
+        <div class="hotspot" id="hotspot-comedor" style="top: 67%; left: 59%;" onclick="checkRoomAccess('comedor', 'Comedor', 'comedor.html')">
+            <span class="tooltip">Comedor</span>
+        </div>
+
+        <!-- 12. Lab. de Geología -->
+        <div class="hotspot" id="hotspot-geologia" style="top: 48%; left: 74%;" onclick="checkRoomAccess('geologia', 'Lab. de Geología', 'geologia.html')">
+            <span class="tooltip">Lab. de Geología</span>
+        </div>
+
+        <!-- 13. Enfermería -->
+        <div class="hotspot" id="hotspot-enfermeria" style="top: 67%; left: 74%;" onclick="checkRoomAccess('enfermeria', 'Enfermería', 'enfermeria.html')">
+            <span class="tooltip">Enfermería</span>
+        </div>
+
+        <!-- 14. Specimen Lab. (Lab. de Espécimenes) -->
+        <div class="hotspot" id="hotspot-specimen" style="top: 76%; left: 74%;" onclick="checkRoomAccess('specimen', 'Lab. de Espécimenes', 'specimen.html')">
+            <span class="tooltip">Lab. de Espécimenes</span>
+        </div>
+
+        <!-- 15. Sala de Radio -->
+        <div class="hotspot" id="hotspot-radio" style="top: 48%; left: 91%;" onclick="checkRoomAccess('radio', 'Sala de Radio', 'radio.html')">
+            <span class="tooltip">Sala de Radio</span>
+        </div>
+
+        <!-- 16. Sala de Mapas -->
+        <div class="hotspot" id="hotspot-mapas" style="top: 67%; left: 91%;" onclick="checkRoomAccess('mapas', 'Sala de Mapas', 'mapas.html')">
+            <span class="tooltip">Sala de Mapas</span>
+        </div>
+
+        <!-- 17. Almacén Room 2 -->
+        <div class="hotspot" id="hotspot-almacen2" style="top: 86%; left: 91%;" onclick="checkRoomAccess('almacen2', 'Almacén Room 2', 'almacen2.html')">
+            <span class="tooltip">Almacén Room 2</span>
+        </div>
+
+        <!-- 18. Invernadero -->
+        <div class="hotspot" id="hotspot-invernadero" style="top: 26%; left: 83%;" onclick="checkRoomAccess('invernadero', 'Invernadero', 'invernadero.html')">
+            <span class="tooltip">Invernadero</span>
+        </div>
+
+        <!-- 19. Lavandería -->
+        <div class="hotspot" id="hotspot-lavanderia" style="top: 11%; left: 83%;" onclick="checkRoomAccess('lavanderia', 'Lavandería', 'lavanderia.html')">
+            <span class="tooltip">Lavandería</span>
+        </div>
+    </div>
+
+    <script>
+        const roomConfigs = {
+            vehiculos: { code: "8101", title: "Edificio de Vehículos" },
+            cobertizo: { code: "8102", title: "Cobertizo" },
+            canera: { code: "8103", title: "Canera" },
+            despacho: { code: "8104", title: "Despacho del Jefe" },
+            almacen1: { code: "8105", title: "Almacén Room 1" },
+            oficina: { code: "1111", title: "Oficina Común" },
+            dormitorios: { code: "8107", title: "Dormitorios" },
+            cocina: { code: "8108", title: "Cocina" },
+            bano: { code: "8109", title: "Baño" },
+            comedor: { code: "8110", title: "Comedor" },
+            geologia: { code: "8111", title: "Lab. de Geología" },
+            enfermeria: { code: "8112", title: "Enfermería" },
+            specimen: { code: "8113", title: "Lab. de Espécimenes" },
+            radio: { code: "8114", title: "Sala de Radio" },
+            mapas: { code: "8115", title: "Sala de Mapas" },
+            almacen2: { code: "8116", title: "Almacén Room 2" },
+            invernadero: { code: "8117", title: "Invernadero" },
+            lavanderia: { code: "8118", title: "Lavandería" }
+        };
+
+        let currentModalConfig = null;
+        let jugadorActual = "JUGADOR";
+
+        function actualizarIdentidadJugador() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const jugadorUrl = urlParams.get('jugador');
+
+            if (jugadorUrl && jugadorUrl.trim() !== "") {
+                jugadorActual = jugadorUrl.trim();
+                localStorage.setItem('jugador_activo_global', jugadorActual);
+            } else {
+                const jugadorGuardado = localStorage.getItem('jugador_activo_global');
+                if (jugadorGuardado && jugadorGuardado.trim() !== "") {
+                    jugadorActual = jugadorGuardado;
+                } else {
+                    try {
+                        if (window.parent && window.parent !== window) {
+                            const parentNameElem = window.parent.document.getElementById('char-name');
+                            if (parentNameElem) {
+                                const textoPadre = parentNameElem.innerText.trim();
+                                if (textoPadre !== "" && textoPadre !== "Cargando...") {
+                                    jugadorActual = textoPadre;
+                                    localStorage.setItem('jugador_activo_global', jugadorActual);
+                                }
+                            }
+                        }
+                    } catch (e) {}
+                }
+            }
+
+            document.getElementById('playerHud').innerText = `IDENTIDAD: ${jugadorActual.toUpperCase()}`;
+            localStorage.setItem('jugador_nombre_real', jugadorActual);
+            updateLocks();
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            actualizarIdentidadJugador();
+        });
+
+        function getStorageKey(roomKey) {
+            return `${jugadorActual}_unlock_${roomKey}`;
+        }
+
+        function updateLocks() {
+            Object.keys(roomConfigs).forEach(roomKey => {
+                const hotspotId = "hotspot-" + roomKey;
+                const el = document.getElementById(hotspotId);
+                if (el) {
+                    const isUnlocked = localStorage.getItem(getStorageKey(roomKey)) === 'true';
+                    let lockSpan = el.querySelector('.hotspot-lock');
+                    
+                    if (!isUnlocked) {
+                        if (!lockSpan) {
+                            lockSpan = document.createElement('span');
+                            lockSpan.className = 'hotspot-lock';
+                            lockSpan.innerText = '🔒';
+                            el.appendChild(lockSpan);
+                        }
+                    } else {
+                        if (lockSpan) {
+                            lockSpan.remove();
+                        }
+                    }
+                }
+            });
+        }
+
+        function goToRoom(page) {
+            const doorAudio = new Audio('audio/opendoor.mp3');
+            doorAudio.play().catch(e => console.log("Audio play prevented:", e));
+            setTimeout(() => {
+                window.location.href = `${page}?jugador=${encodeURIComponent(jugadorActual)}`;
+            }, 1000);
+        }
+
+        function checkRoomAccess(roomKey, roomTitle, pageTarget) {
+            const storageKey = getStorageKey(roomKey);
+            const isUnlocked = localStorage.getItem(storageKey) === 'true';
+
+            if (isUnlocked) {
+                goToRoom(pageTarget);
+            } else {
+                currentModalConfig = {
+                    roomKey: roomKey,
+                    title: roomTitle,
+                    code: roomConfigs[roomKey].code,
+                    storageKey: storageKey,
+                    target: pageTarget
+                };
+                
+                document.getElementById('modalTitle').innerText = `ACCESO: ${roomTitle.toUpperCase()}`;
+                document.getElementById('modalDesc').innerText = `Introduce la clave de seguridad para desbloquear esta zona:`;
+                document.getElementById('modalError').innerText = "";
+                document.getElementById('modalCodeInput').value = "";
+                document.getElementById('codeModal').style.display = 'flex';
+                document.getElementById('modalCodeInput').focus();
+            }
+        }
+
+        function closeCodeModal() {
+            document.getElementById('codeModal').style.display = 'none';
+        }
+
+        function submitModalCode() {
+            const inputVal = document.getElementById('modalCodeInput').value.trim();
+            const errorSpan = document.getElementById('modalError');
+
+            if (currentModalConfig && inputVal === currentModalConfig.code) {
+                localStorage.setItem(currentModalConfig.storageKey, 'true');
+                closeCodeModal();
+                updateLocks();
+                goToRoom(currentModalConfig.target);
+            } else {
+                const nopeAudio = new Audio('audio/nope.mp3');
+                nopeAudio.play().catch(e => console.log("Audio play prevented:", e));
+                errorSpan.innerText = "ACCESO DENEGADO: Código incorrecto.";
+            }
+        }
+
+        function handleModalKey(event) {
+            if (event.key === 'Enter') {
+                submitModalCode();
+            }
+        }
+    </script>
+</body>
+</html>

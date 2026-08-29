@@ -1,0 +1,1530 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventario</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap');
+
+    :root {
+        --bg-color: #050b14;
+        --sidebar-bg: #0b1728;
+        --accent-color: #1e90ff;
+        --accent-glow: #00ffff;
+        --text-main: #b0e0e6;
+        --text-muted: #5c82a6;
+        --border-color: #10315a;
+        --font-family: 'Share Tech Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      font-family: 'Share Tech Mono', monospace;
+      background-color: #03060c;
+      background-image: radial-gradient(circle at center, #08162b 0%, #020408 100%);
+      color: #b0e0e6;
+      height: 100vh;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* COLUMNA IZQUIERDA: PERSONAJE Y NOTAS */
+    #left-panel {
+      width: 320px;
+      background: linear-gradient(180deg, #091524 0%, #040912 100%);
+      border-right: 3px solid #10315a;
+      box-shadow: 5px 0 25px rgba(0, 191, 255, 0.15);
+      padding: 25px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      z-index: 5;
+    }
+
+    .character-portrait-frame {
+      width: 100px;
+      height: 120px;
+      border: 3px solid #1e90ff;
+      outline: 2px solid #050b14;
+      border-radius: 2px;
+      overflow: hidden;
+      box-shadow: 0 0 15px rgba(0, 191, 255, 0.4);
+      background: #000;
+      margin-bottom: 15px;
+      cursor: pointer;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .character-portrait-frame:hover {
+      transform: scale(1.03);
+      border-color: #00ffff;
+    }
+
+    .character-portrait-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+
+/* Cambia o elimina el hue-rotate. 
+     Si quieres quitar el azul por completo, déjalo en 0 deg. 180 1.5 y 1.2 para foto azulada */
+
+      filter: hue-rotate(0deg) saturate(1) contrast(1);
+    }
+
+    .character-name {
+      font-family: 'VT323', monospace;
+      font-size: 1.8rem;
+      color: #00ffff;
+      text-align: center;
+      letter-spacing: 2px;
+      text-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+      margin-bottom: 4px;
+      word-break: break-word;
+    }
+
+    .character-profession {
+      font-size: 0.85rem;
+      color: #5c82a6;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #10315a;
+      padding-bottom: 8px;
+      width: 100%;
+      text-align: center;
+    }
+
+    #goals-section {
+      width: 100%;
+      flex: 1;
+      background: rgba(4, 10, 18, 0.8);
+      border: 1px solid #10315a;
+      border-radius: 2px;
+      padding: 15px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .goals-title {
+      font-family: 'VT323', monospace;
+      color: #5c82a6;
+      font-size: 1.3rem;
+      border-bottom: 1px dashed #10315a;
+      padding-bottom: 5px;
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+    }
+
+    /* ESTILOS DE BARRA.HTML ADAPTADOS EN LA SECCIÓN OBJETIVOS & NOTAS */
+    .objectives-section {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 5px;
+        width: 100%;
+        font-family: var(--font-family);
+    }
+
+    .objective-btn {
+        background-color: var(--sidebar-bg);
+        border: 1px solid var(--accent-color);
+        color: var(--accent-color);
+        font-family: var(--font-family);
+        font-size: 0.85rem;
+        padding: 12px 10px;
+        border-radius: 2px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 8px rgba(30, 144, 255, 0.2);
+        text-align: left;
+        width: 100%;
+    }
+
+    .objective-btn:hover {
+        background-color: var(--accent-color);
+        color: var(--bg-color);
+        box-shadow: 0 0 15px var(--accent-color);
+    }
+
+    .objective-btn.locked {
+        opacity: 0.6;
+        border-style: dashed;
+    }
+
+    .objective-btn .obj-icon {
+        font-size: 1.2rem;
+    }
+
+    .btn-reset-chapters {
+        background-color: #0b1728;
+        border: 1px solid #10315a;
+        color: #5c82a6;
+        font-family: var(--font-family);
+        font-size: 0.75rem;
+        padding: 8px 10px;
+        border-radius: 2px;
+        cursor: pointer;
+        text-align: center;
+        width: 100%;
+        margin-top: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-reset-chapters:hover {
+        background-color: #10315a;
+        color: #00ffff;
+        border-color: #00ffff;
+    }
+
+    /* MODALES DE CAPÍTULOS (POPUPS) */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(2, 5, 10, 0.85);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.4s ease;
+    }
+
+    .modal-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .modal-content {
+        background-color: #091626;
+        color: #b0e0e6;
+        width: 90%;
+        max-width: 900px;
+        max-height: 80vh;
+        overflow-y: auto;
+        padding: 30px;
+        border-radius: 2px;
+        box-shadow: inset 0 0 30px rgba(0, 191, 255, 0.2), 0 0 20px rgba(0, 191, 255, 0.3);
+        position: relative;
+        border: 2px solid #1e90ff;
+        font-family: 'Share Tech Mono', monospace;
+    }
+
+    .modal-content h2 {
+        color: #00ffff;
+        border-bottom: 1px solid #1e90ff;
+        padding-bottom: 10px;
+        font-size: 1.4rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+    .modal-content h3 {
+        color: #1e90ff;
+        margin-top: 25px;
+        text-align: left;
+        font-size: 1.1rem;
+    }
+
+    .modal-content ul {
+        list-style-type: none;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        padding-left: 0;
+    }
+
+    .modal-content li {
+        position: relative;
+        padding-left: 20px;
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .modal-content li.info-item::before {
+        content: "•";
+        position: absolute;
+        left: 0;
+        top: 0px;
+        color: #00ffff;
+        font-size: 2rem;
+        line-height: 1;
+    }
+
+    .modal-content .close-btn {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        font-size: 1.5rem;
+        color: #00ffff;
+        cursor: pointer;
+        font-weight: bold;
+        font-family: Arial, sans-serif;
+    }
+
+    /* VENTANA DE CONTRASEÑA */
+    .password-box {
+        background-color: var(--sidebar-bg);
+        border: 2px solid var(--accent-color);
+        padding: 30px;
+        text-align: center;
+        box-shadow: 0 0 20px rgba(0, 191, 255, 0.3);
+        position: relative;
+        width: 350px;
+        max-width: 90%;
+        border-radius: 2px;
+        font-family: 'Share Tech Mono', monospace;
+    }
+
+    .password-box h2 {
+        font-size: 1.1rem;
+        color: var(--accent-glow);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 15px;
+    }
+
+    .password-box p {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-bottom: 15px;
+    }
+
+    .password-box input {
+        background-color: #03060c;
+        border: 1px solid var(--accent-color);
+        color: var(--accent-glow);
+        padding: 10px;
+        font-family: 'Share Tech Mono', monospace;
+        font-size: 1.1rem;
+        margin-bottom: 15px;
+        width: 80%;
+        text-align: center;
+        outline: none;
+        letter-spacing: 2px;
+    }
+
+    .password-box button {
+        background-color: var(--accent-color);
+        color: var(--bg-color);
+        border: none;
+        padding: 10px 20px;
+        font-family: 'Share Tech Mono', monospace;
+        cursor: pointer;
+        font-weight: bold;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        border-radius: 2px;
+    }
+
+    .password-box .close-btn {
+        color: var(--accent-glow);
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        cursor: pointer;
+        font-size: 1.2rem;
+    }
+
+    .error-msg {
+        color: #ff6b6b;
+        font-size: 0.75rem;
+        margin-top: 10px;
+        display: none;
+        font-style: italic;
+    }
+
+    /* COLUMNA DERECHA PRINCIPAL */
+    #right-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #top-stats-bar {
+      background: linear-gradient(180deg, #0b1728 0%, #050b14 100%);
+      border-bottom: 3px solid #10315a;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+    }
+
+    .stats-row {
+      display: flex;
+      gap: 25px;
+      align-items: center;
+    }
+
+    .stat-card {
+      background: rgba(9, 21, 36, 0.9);
+      border: 1px solid #10315a;
+      padding: 10px 20px;
+      border-radius: 2px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 130px;
+      box-shadow: inset 0 0 8px rgba(0, 191, 255, 0.1);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: #5c82a6;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-family: 'VT323', monospace;
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: #b0e0e6;
+    }
+
+    .stat-value.action { color: #00ffff; }
+    .stat-value.sanity { color: #7fffd4; }
+    .stat-value.money { color: #00ff7f; }
+
+    .transfer-money-inline {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(6, 14, 24, 0.8);
+      border: 1px dashed #1e90ff;
+      padding: 8px 12px;
+      border-radius: 2px;
+    }
+
+    .transfer-money-inline label {
+      font-size: 0.75rem;
+      color: #5c82a6;
+      text-transform: uppercase;
+    }
+
+    .transfer-money-inline input {
+      width: 55px;
+      background: #03060c;
+      border: 1px solid #10315a;
+      color: #00ff7f;
+      padding: 4px;
+      text-align: right;
+      font-family: 'Share Tech Mono', monospace;
+      -moz-appearance: textfield;
+    }
+
+    .transfer-money-inline input::-webkit-outer-spin-button,
+    .transfer-money-inline input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .transfer-money-inline select {
+      background: #03060c;
+      border: 1px solid #10315a;
+      color: #b0e0e6;
+      padding: 4px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.8rem;
+    }
+
+    .btn-transfer {
+      background: #091524;
+      color: #00ffff;
+      border: 1px solid #1e90ff;
+      padding: 5px 10px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-transfer:hover {
+      background: #1e90ff;
+      color: #03060c;
+    }
+
+    #inventory-section {
+      flex: 1;
+      padding: 25px 30px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .code-unlock-box {
+      background: rgba(9, 21, 36, 0.8);
+      border: 1px solid #10315a;
+      padding: 15px 20px;
+      border-radius: 2px;
+      margin-bottom: 25px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    }
+
+    .code-unlock-title {
+      font-family: 'VT323', monospace;
+      font-size: 1.3rem;
+      color: #00ffff;
+      letter-spacing: 1px;
+    }
+
+    .code-input-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .code-input {
+      width: 90px;
+      background: #03060c;
+      border: 1px solid #1e90ff;
+      color: #00ffff;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 1.2rem;
+      text-align: center;
+      letter-spacing: 4px;
+      padding: 4px 8px;
+      border-radius: 2px;
+    }
+
+    .code-input::placeholder {
+      color: #2e527d;
+      letter-spacing: 3px;
+    }
+
+    .btn-code-ok {
+      background: #1e90ff;
+      color: #03060c;
+      border: 1px solid #00ffff;
+      padding: 6px 15px;
+      font-family: 'Share Tech Mono', monospace;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: background 0.2s;
+    }
+
+    .btn-code-ok:hover {
+      background: #00ffff;
+      color: #03060c;
+    }
+
+    .inventory-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 20px;
+    }
+
+    .item-card {
+      background: radial-gradient(circle, #091626 0%, #040912 100%);
+      border: 2px solid #10315a;
+      border-radius: 2px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .item-card:hover {
+      transform: translateY(-3px);
+      border-color: #00ffff;
+    }
+
+    .item-thumb-container {
+      width: 85px;
+      height: 85px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      margin-bottom: 8px;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 2px;
+      border: 1px solid #10315a;
+    }
+
+    .item-thumb {
+      max-width: 80%;
+      max-height: 80%;
+      object-fit: contain;
+      filter: hue-rotate(0deg) saturate(1) drop-shadow(0 0 4px rgba(0, 191, 255, 0.5));
+      transition: transform 0.2s;
+    }
+
+    .item-thumb-container:hover .item-thumb {
+      transform: scale(1.1);
+    }
+
+    .item-name {
+      font-size: 0.8rem;
+      color: #b0e0e6;
+      text-align: center;
+      margin-bottom: 8px;
+      height: 2.2em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .select-player {
+      width: 100%;
+      background: #03060c;
+      color: #5c82a6;
+      border: 1px solid #10315a;
+      padding: 4px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.75rem;
+      margin-bottom: 6px;
+    }
+
+    .btn-deliver {
+      width: 100%;
+      background: #0f2540;
+      color: #00ffff;
+      border: 1px solid #1e90ff;
+      padding: 5px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.75rem;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: background 0.2s;
+    }
+
+    .btn-deliver:hover {
+      background: #1e90ff;
+      color: #03060c;
+    }
+
+    #fullscreen-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(2, 5, 10, 0.92);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      cursor: pointer;
+      backdrop-filter: blur(5px);
+    }
+
+    #fullscreen-modal img {
+      max-width: 85vw;
+      max-height: 85vh;
+      object-fit: contain;
+      border: 3px solid #00ffff;
+      box-shadow: 0 0 30px rgba(0, 191, 255, 0.5);
+      border-radius: 2px;
+      background: #03060c;
+      padding: 10px;
+    }
+
+    #confirm-modal, #alert-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(2, 5, 10, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 11000;
+    }
+
+    .confirm-box {
+      background: #091626;
+      border: 2px solid #1e90ff;
+      border-radius: 2px;
+      padding: 30px;
+      width: 380px;
+      text-align: center;
+      box-shadow: 0 0 30px rgba(0, 191, 255, 0.3);
+      position: relative;
+    }
+
+    .confirm-box::before {
+      content: '';
+      position: absolute;
+      top: 4px; left: 4px; right: 4px; bottom: 4px;
+      border: 1px solid #10315a;
+      pointer-events: none;
+    }
+
+    .confirm-title {
+      font-family: 'VT323', monospace;
+      color: #00ffff;
+      font-size: 1.5rem;
+      margin-bottom: 15px;
+    }
+
+    .confirm-text {
+      color: #b0e0e6;
+      font-size: 0.95rem;
+      margin-bottom: 25px;
+      line-height: 1.4;
+    }
+
+    .confirm-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+    }
+
+    .confirm-btn {
+      padding: 8px 25px;
+      cursor: pointer;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.9rem;
+      border-radius: 2px;
+    }
+
+    .btn-yes {
+      background: #1e90ff;
+      color: #03060c;
+      border: 1px solid #00ffff;
+      font-weight: bold;
+    }
+
+    .btn-yes:hover { background: #00ffff; }
+
+    .btn-no {
+      background: #0b1728;
+      color: #b0e0e6;
+      border: 1px solid #10315a;
+    }
+
+    .btn-no:hover { background: #10315a; }
+  </style>
+</head>
+<body>
+
+  <!-- MODAL DE CONTENIDO DE CAPÍTULOS -->
+  <div class="modal-overlay" id="content-modal" onclick="closeModal('content-modal')">
+      <div class="modal-content" onclick="event.stopPropagation()">
+          <span class="close-btn" onclick="closeModal('content-modal')">X</span>
+          <div id="phase-content-body"></div>
+      </div>
+  </div>
+
+  <!-- MODAL DE CONTRASEÑA DE CAPÍTULOS -->
+  <div class="modal-overlay" id="password-modal" onclick="closeModal('password-modal')">
+      <div class="password-box" onclick="event.stopPropagation()">
+          <span class="close-btn" onclick="closeModal('password-modal')">X</span>
+          <h2 id="modalTitle">Desbloquear Capítulo</h2>
+          <p>Introduce la clave correcta:</p>
+          <input type="text" id="password-input" placeholder="Clave..." autocomplete="off">
+          <br><br>
+          <button onclick="checkPassword()">Desbloquear</button>
+          <p class="error-msg" id="error-msg">Código incorrecto. Inténtalo de nuevo.</p>
+      </div>
+  </div>
+
+  <div id="left-panel">
+    <div class="character-portrait-frame" onclick="abrirFotoPersonaje()">
+      <img id="char-photo" src="" alt="Foto Jugador" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%2300ffff\'><path d=\'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z\'/></svg>'">
+    </div>
+    
+    <div class="character-name" id="char-name">Cargando...</div>
+    <div class="character-profession" id="char-profession">---</div>
+
+    <div id="goals-section">
+      
+      <!-- INTEGRACIÓN DE LOS DATOS DE BARRA.HTML -->
+      <div class="objectives-section">
+          <button class="objective-btn" id="obj-btn-1" onclick="openObjective(1)">
+              <span>CAPÍTULO 1</span> <span class="obj-icon" id="obj-icon-1">👁️</span>
+          </button>
+          
+          <button class="objective-btn locked" id="obj-btn-2" onclick="openObjective(2)">
+              <span>CAPÍTULO 2</span> <span class="obj-icon" id="obj-icon-2">🔒</span>
+          </button>
+          
+          <button class="objective-btn locked" id="obj-btn-3" onclick="openObjective(3)">
+              <span>CAPÍTULO 3</span> <span class="obj-icon" id="obj-icon-3">🔒</span>
+          </button>
+
+          <button class="objective-btn locked" id="obj-btn-4" onclick="openObjective(4)">
+              <span>CAPÍTULO 4</span> <span class="obj-icon" id="obj-icon-4">🔒</span>
+          </button>
+
+          <button class="btn-reset-chapters" onclick="solicitarReiniciarCapitulos()">Reiniciar Capítulos</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="right-panel">
+    
+    <div id="top-stats-bar">
+      <div class="stats-row">
+        <div class="stat-card">
+          <span class="stat-label">Puntos de Acción</span>
+          <span class="stat-value action" id="char-pa">0</span>
+        </div>
+
+        <div class="stat-card">
+          <span class="stat-label">Cordura</span>
+          <span class="stat-value sanity" id="char-sanity">0</span>
+        </div>
+
+        <div class="stat-card">
+          <span class="stat-label">Dinero</span>
+          <span class="stat-value money" id="char-money">$0</span>
+        </div>
+      </div>
+
+      <div class="transfer-money-inline">
+        <label>Transferir:</label>
+        <input type="number" id="transfer-amount" min="1" placeholder="$" value="0" onfocus="if(this.value==='0') this.value='';" onblur="if(this.value==='') this.value='0';">
+        <select id="transfer-target-player">
+          <!-- Opciones dinámicas -->
+        </select>
+        <button class="btn-transfer" onclick="solicitarTransferenciaDinero()">Enviar</button>
+      </div>
+    </div>
+
+    <div id="inventory-section">
+      
+      <div class="code-unlock-box">
+        <div class="code-unlock-title">Introducir Código de Objeto:</div>
+        <div class="code-input-container">
+          <input type="text" id="object-code-input" class="code-input" maxlength="4" placeholder="****" onfocus="if(this.placeholder==='****')this.placeholder='';" onblur="if(this.value==='')this.placeholder='****';">
+          <button class="btn-code-ok" onclick="procesarCodigoObjeto()">OK</button>
+        </div>
+      </div>
+
+      <div class="inventory-grid" id="inventory-grid">
+        <!-- Generado dinámicamente -->
+      </div>
+
+    </div>
+
+  </div>
+
+  <div id="fullscreen-modal" onclick="cerrarFullscreen()">
+    <img id="fullscreen-img" src="" alt="Objeto">
+  </div>
+
+  <div id="confirm-modal">
+    <div class="confirm-box">
+      <div class="confirm-title">Confirmar Acción</div>
+      <div class="confirm-text" id="confirm-text">¿Estás seguro?</div>
+      <div class="confirm-buttons">
+        <button class="confirm-btn btn-yes" id="confirm-yes-btn">SÍ</button>
+        <button class="confirm-btn btn-no" onclick="cerrarConfirmacion()">NO</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="alert-modal">
+    <div class="confirm-box">
+      <div class="confirm-title" id="alert-title">Aviso</div>
+      <div class="confirm-text" id="alert-text">Mensaje de aviso</div>
+      <div class="confirm-buttons">
+        <button class="confirm-btn btn-no" onclick="cerrarAlerta()">ACEPTAR</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyxoSM32MKedAamrgglimkF6W9-q0MrB-N1BmLL5WH6pKvLO2mDcz4aeCxCRm78OZaFcA/exec';
+    const JUGADOR_ACTUAL = 'jugador1';
+
+    const CODIGOS_OBJETOS = {
+      '1111': 'Navaja',
+      '2222': 'Biblia',
+      '3333': 'Barril',
+      '4444': 'Calendario',
+      '5555': 'Linterna',
+      '6666': 'Petaca',
+      '7777': 'Reloj',
+      '8888': 'Gasolina'
+    };
+
+    let todosLosJugadores = [];
+    let miJugadorData = null;
+
+    function reproducirClick() {
+      const clickAudio = new Audio('audio/click.mp3');
+      clickAudio.play().catch(err => console.log("Audio autoplay prevenido o archivo no encontrado:", err));
+    }
+
+    function reproducirNope() {
+      const nopeAudio = new Audio('audio/nope.mp3');
+      nopeAudio.play().catch(err => console.log("Audio nope prevenido o archivo no encontrado:", err));
+    }
+
+    function reproducirPickup() {
+      const pickupAudio = new Audio('audio/pickup.mp3');
+      pickupAudio.play().catch(err => console.log("Audio pickup prevenido o archivo no encontrado:", err));
+    }
+
+    function reproducirCorrect() {
+      const correctAudio = new Audio('audio/correct.mp3');
+      correctAudio.play().catch(err => console.log("Audio correct prevenido o archivo no encontrado:", err));
+    }
+
+    document.addEventListener('click', function(e) {
+      if (e.target.closest('button:not(.objective-btn), .item-thumb-container, .character-portrait-frame, #fullscreen-modal')) {
+        reproducirClick();
+      }
+    });
+
+    window.onload = function() {
+      sincronizarConGoogleSheets();
+      setInterval(sincronizarConGoogleSheets, 3000);
+    };
+
+    function obtenerRutaImagen(nombreObjeto) {
+      const nombreClean = nombreObjeto.toLowerCase().trim();
+      if (nombreClean.includes('esposas')) return 'images/esposas.jpg';
+      
+      return 'images/' + nombreClean + '.jpg';
+    }
+
+    function sincronizarConGoogleSheets() {
+      const urlConCache = APPS_SCRIPT_URL + '?t=' + new Date().getTime();
+
+      fetch(urlConCache)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.status === "error") {
+            document.getElementById('char-name').innerText = "ERROR: " + data.message;
+            console.error("Fallo Apps Script:", data.message);
+            return;
+          }
+
+          if (!Array.isArray(data)) {
+            document.getElementById('char-name').innerText = "Error formato JSON";
+            return;
+          }
+
+          todosLosJugadores = data;
+          miJugadorData = data.find(p => String(p.jugador_id || '').toLowerCase().trim() === JUGADOR_ACTUAL.toLowerCase().trim());
+
+          if (miJugadorData) {
+            if (!miJugadorData.inventario) miJugadorData.inventario = {};
+
+            let localItems = JSON.parse(localStorage.getItem(`game_local_items_${JUGADOR_ACTUAL}`) || '{}');
+            let deliveredItems = JSON.parse(localStorage.getItem(`game_delivered_items_${JUGADOR_ACTUAL}`) || '{}');
+            const now = Date.now();
+
+            // Limpieza local si el servidor ya lo ha eliminado o vaciado
+            for (let item in localItems) {
+                if (!miJugadorData.inventario[item] || miJugadorData.inventario[item] !== true) {
+                    delete localItems[item];
+                }
+            }
+            localStorage.setItem(`game_local_items_${JUGADOR_ACTUAL}`, JSON.stringify(localItems));
+
+            // Mantener activo si fue añadido localmente
+            for (let item in localItems) {
+                if (localItems[item] === true) {
+                    miJugadorData.inventario[item] = true;
+                }
+            }
+
+            // Mantener ocultos objetos recién entregados
+            for (let item in deliveredItems) {
+                const time = deliveredItems[item];
+                if (now - time < 30000) {
+                    miJugadorData.inventario[item] = false;
+                } else {
+                    if (miJugadorData.inventario[item] !== true) {
+                        delete deliveredItems[item];
+                    }
+                }
+            }
+            localStorage.setItem(`game_delivered_items_${JUGADOR_ACTUAL}`, JSON.stringify(deliveredItems));
+
+            renderizarPerfil();
+            renderizarInventario();
+            actualizarDesplegableDinero();
+            sincronizarCapitulosDesdeServidor();
+          } else {
+            document.getElementById('char-name').innerText = "Sin datos para " + JUGADOR_ACTUAL;
+          }
+        })
+        .catch(err => {
+          document.getElementById('char-name').innerText = "Error Red / Permisos";
+          console.error("Error Fetch:", err);
+        });
+    }
+
+    function renderizarPerfil() {
+      document.getElementById('char-name').innerText = miJugadorData.nombre || JUGADOR_ACTUAL;
+      document.getElementById('char-profession').innerText = miJugadorData.profesion || 'Investigador';
+      document.getElementById('char-pa').innerText = miJugadorData.puntos_accion || 0;
+      
+      const sanityVal = Number(miJugadorData.cordura) || 0;
+      const sanityElem = document.getElementById('char-sanity');
+      sanityElem.innerText = sanityVal;
+
+      sanityElem.className = 'stat-value sanity';
+      if (sanityVal >= 4 && sanityVal <= 6) {
+        sanityElem.style.color = '#7fffd4';
+      } else if (sanityVal === 3) {
+        sanityElem.style.color = '#00ffff';
+      } else if (sanityVal === 2) {
+        sanityElem.style.color = '#1e90ff';
+      } else if (sanityVal <= 1) {
+        sanityElem.style.color = '#ff6b6b';
+      }
+
+      document.getElementById('char-money').innerText = '$' + (miJugadorData.dinero || 0);
+
+      if (miJugadorData.foto) {
+        document.getElementById('char-photo').src = miJugadorData.foto;
+      }
+    }
+
+    function renderizarInventario() {
+      const grid = document.getElementById('inventory-grid');
+      const inventario = miJugadorData.inventario || {};
+
+      const seleccionesGuardadas = {};
+      for (let objeto in inventario) {
+        const selectElem = document.getElementById(`select-${objeto}`);
+        if (selectElem) {
+          seleccionesGuardadas[objeto] = selectElem.value;
+        }
+      }
+
+      grid.innerHTML = '';
+
+      for (let objeto in inventario) {
+        if (inventario[objeto] === true) {
+          const imgSrc = obtenerRutaImagen(objeto);
+
+          const card = document.createElement('div');
+          card.className = 'item-card';
+
+          let optionsHtml = '<option value="">Entregar a...</option>';
+          todosLosJugadores.forEach(j => {
+            if (String(j.jugador_id).toLowerCase().trim() !== JUGADOR_ACTUAL.toLowerCase().trim()) {
+              optionsHtml += `<option value="${j.jugador_id}">${j.nombre}</option>`;
+            }
+          });
+
+          card.innerHTML = `
+            <div class="item-thumb-container" onclick="abrirFullscreen('${imgSrc}')">
+              <img src="${imgSrc}" class="item-thumb" alt="${objeto}" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 24 24\\' fill=\\'%2300ffff\\'><path d=\\'M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8 3c1.93 0 3.5 1.57 3.5 3.5S13.93 12 12 12s-3.5-1.57-3.5-3.5S10.07 5 12 5zm6 13H6v-.7c0-2 4-3.1 6-3.1s6 1.1 6 3.1v.7z\\'/></svg> '">
+            </div>
+            <div class="item-name">${objeto}</div>
+            <select class="select-player" id="select-${objeto}" ${document.activeElement && document.activeElement.id === `select-${objeto}` ? 'data-user-interacting="true"' : ''}>
+              ${optionsHtml}
+            </select>
+            <button class="btn-deliver" onclick="solicitarEntregaObjeto('${objeto}')">Entregar</button>
+          `;
+
+          grid.appendChild(card);
+
+          const nuevoSelect = document.getElementById(`select-${objeto}`);
+          if (nuevoSelect) {
+            if (seleccionesGuardadas[objeto]) {
+              nuevoSelect.value = seleccionesGuardadas[objeto];
+            }
+            if (document.activeElement && document.activeElement.id === `select-${objeto}`) {
+              nuevoSelect.focus();
+            }
+          }
+        }
+      }
+    }
+
+    function actualizarDesplegableDinero() {
+      const selectDinero = document.getElementById('transfer-target-player');
+      const valorSeleccionado = selectDinero.value;
+      selectDinero.innerHTML = '<option value="">Jugador...</option>';
+      
+      todosLosJugadores.forEach(j => {
+        if (String(j.jugador_id).toLowerCase().trim() !== JUGADOR_ACTUAL.toLowerCase().trim()) {
+          selectDinero.innerHTML += `<option value="${j.jugador_id}">${j.nombre}</option>`;
+        }
+      });
+      selectDinero.value = valorSeleccionado;
+    }
+
+    function procesarCodigoObjeto() {
+      const input = document.getElementById('object-code-input');
+      const codigo = input.value.trim();
+
+      if (CODIGOS_OBJETOS[codigo]) {
+        const nombreObjeto = CODIGOS_OBJETOS[codigo];
+        let localItems = JSON.parse(localStorage.getItem(`game_local_items_${JUGADOR_ACTUAL}`) || '{}');
+        const poseeObjeto = (miJugadorData && miJugadorData.inventario && miJugadorData.inventario[nombreObjeto] === true) || localItems[nombreObjeto] === true;
+        
+        if (poseeObjeto) {
+          reproducirNope();
+          mostrarAlerta("Atención", "Ya posees este objeto en tu inventario.");
+        } else {
+          reproducirPickup();
+          
+          localItems[nombreObjeto] = true;
+          localStorage.setItem(`game_local_items_${JUGADOR_ACTUAL}`, JSON.stringify(localItems));
+
+          let deliveredItems = JSON.parse(localStorage.getItem(`game_delivered_items_${JUGADOR_ACTUAL}`) || '{}');
+          delete deliveredItems[nombreObjeto];
+          localStorage.setItem(`game_delivered_items_${JUGADOR_ACTUAL}`, JSON.stringify(deliveredItems));
+
+          if (!miJugadorData) miJugadorData = {};
+          if (!miJugadorData.inventario) miJugadorData.inventario = {};
+          miJugadorData.inventario[nombreObjeto] = true;
+
+          // Renderizado inmediato local antes de la respuesta del servidor
+          renderizarInventario();
+          ejecutarObtencionPorCodigo(nombreObjeto);
+        }
+        input.value = '';
+        input.placeholder = '****';
+      } else {
+        reproducirNope();
+        mostrarAlerta("Error", "Código incorrecto o desconocido.");
+        input.value = '';
+        input.placeholder = '****';
+      }
+    }
+
+    function ejecutarObtencionPorCodigo(nombreObjeto) {
+      ejecutarTransferencia('objeto', nombreObjeto, JUGADOR_ACTUAL, 0, 'SISTEMA');
+    }
+
+    function abrirFotoPersonaje() {
+      const srcFoto = document.getElementById('char-photo').src;
+      abrirFullscreen(srcFoto);
+    }
+
+    function abrirFullscreen(imgSrc) {
+      const modal = document.getElementById('fullscreen-modal');
+      document.getElementById('fullscreen-img').src = imgSrc;
+      modal.style.display = 'flex';
+    }
+
+    function cerrarFullscreen() {
+      document.getElementById('fullscreen-modal').style.display = 'none';
+    }
+
+    function solicitarEntregaObjeto(nombreObjeto) {
+      const select = document.getElementById(`select-${nombreObjeto}`);
+      const destinoId = select.value;
+
+      if (!destinoId) {
+        mostrarAlerta("Atención", "Por favor, selecciona un jugador destino en el desplegable.");
+        return;
+      }
+
+      const jugadorDestino = todosLosJugadores.find(j => j.jugador_id === destinoId);
+      const nombreDestino = jugadorDestino ? jugadorDestino.nombre : destinoId;
+
+      const texto = `¿Estás seguro de entregar el objeto <strong>${nombreObjeto}</strong> a <strong>${nombreDestino}</strong>?`;
+      
+      mostrarModalConfirmacion(texto, function() {
+        let localItems = JSON.parse(localStorage.getItem(`game_local_items_${JUGADOR_ACTUAL}`) || '{}');
+        delete localItems[nombreObjeto];
+        localStorage.setItem(`game_local_items_${JUGADOR_ACTUAL}`, JSON.stringify(localItems));
+
+        let deliveredItems = JSON.parse(localStorage.getItem(`game_delivered_items_${JUGADOR_ACTUAL}`) || '{}');
+        deliveredItems[nombreObjeto] = Date.now();
+        localStorage.setItem(`game_delivered_items_${JUGADOR_ACTUAL}`, JSON.stringify(deliveredItems));
+
+        if (miJugadorData.inventario) {
+          miJugadorData.inventario[nombreObjeto] = false;
+        }
+        renderizarInventario();
+
+        ejecutarTransferencia('objeto', nombreObjeto, destinoId);
+      });
+    }
+
+    function solicitarTransferenciaDinero() {
+      const inputAmount = document.getElementById('transfer-amount');
+      const cantidad = parseInt(inputAmount.value, 10);
+      const destinoId = document.getElementById('transfer-target-player').value;
+
+      if (!destinoId) {
+        mostrarAlerta("Atención", "Selecciona a qué jugador enviar dinero.");
+        return;
+      }
+
+      if (isNaN(cantidad) || cantidad <= 0) {
+        mostrarAlerta("Atención", "Introduce una cantidad válida.");
+        return;
+      }
+
+      if (cantidad > miJugadorData.dinero) {
+        reproducirNope();
+        mostrarAlerta("Error", "No dispones de suficiente dinero.");
+        return;
+      }
+
+      const jugadorDestino = todosLosJugadores.find(j => j.jugador_id === destinoId);
+      const nombreDestino = jugadorDestino ? jugadorDestino.nombre : destinoId;
+
+      const texto = `¿Estás seguro de enviar <strong>$${cantidad}</strong> a <strong>${nombreDestino}</strong>?`;
+
+      mostrarModalConfirmacion(texto, function() {
+        miJugadorData.dinero = Math.max(0, miJugadorData.dinero - cantidad);
+        renderizarPerfil();
+
+        ejecutarTransferencia('dinero', null, destinoId, cantidad);
+        inputAmount.value = 0;
+      });
+    }
+
+    function mostrarModalConfirmacion(mensajeHtml, accionSi) {
+      const modal = document.getElementById('confirm-modal');
+      document.getElementById('confirm-text').innerHTML = mensajeHtml;
+      
+      const btnYes = document.getElementById('confirm-yes-btn');
+      btnYes.onclick = function() {
+        cerrarConfirmacion();
+        accionSi();
+      };
+
+      modal.style.display = 'flex';
+    }
+
+    function cerrarConfirmacion() {
+      document.getElementById('confirm-modal').style.display = 'none';
+    }
+
+    function mostrarAlerta(titulo, mensajeHtml) {
+      const modal = document.getElementById('alert-modal');
+      document.getElementById('alert-title').innerText = titulo;
+      document.getElementById('alert-text').innerHTML = mensajeHtml;
+      modal.style.display = 'flex';
+    }
+
+    function cerrarAlerta() {
+      document.getElementById('alert-modal').style.display = 'none';
+    }
+
+    function ejecutarTransferencia(tipo, objeto, destino, cantidad = 0, origen = JUGADOR_ACTUAL) {
+      const params = new URLSearchParams();
+      params.append('origen', origen);
+      params.append('destino', destino);
+      params.append('tipo', tipo);
+      params.append('objeto', objeto || '');
+      params.append('cantidad', cantidad);
+
+      fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        body: params
+      })
+      .then(() => {
+        setTimeout(sincronizarConGoogleSheets, 800);
+      })
+      .catch(err => console.error("Error al enviar solicitud POST:", err));
+    }
+
+    /* LÓGICA DE CAPÍTULOS Y CONTRASEÑAS */
+    const objectivesData = {
+        1: {
+            title: "Capítulo 1",
+            unlocked: true,
+            items: [
+                { text: "¿Quién eres?", type: "subheading" },
+                { type: "space" },
+                { text: "Tras cincuenta y tres años bastante mal llevados, el fin de lo que consideras tu vida está a punto de llegar...", type: "info" },
+                { type: "line" },
+                { text: "Resumen", type: "subheading" },
+                { type: "space" },
+                { text: "Marinero de toda la vida, te ganas el sustento cuidando el caserón del profesor Warren Lecturer...", type: "info" }
+            ]
+        },
+        2: {
+            title: "Capítulo 2",
+            unlocked: false,
+            code: "banana",
+            sheetKey: "capitulo2",
+            items: [
+                { text: "Objetivos", type: "subheading" },
+                { type: "space" },
+                { text: "Convence al grupo de que la comida y el vino que has servido son un obsequio especial.", type: "check" },
+                { text: "Intenta hablar con todo el mundo.", type: "check" }
+            ]
+        },
+        3: {
+            title: "Capítulo 3",
+            unlocked: false,
+            code: "mesa",
+            sheetKey: "capitulo3",
+            items: [
+                { text: "Objetivos", type: "subheading" },
+                { type: "space" },
+                { text: "Finge no saber nada del mundo exterior y acusa a los invitados.", type: "check" }
+            ]
+        },
+        4: {
+            title: "Capítulo 4",
+            unlocked: false,
+            code: "agua",
+            sheetKey: "capitulo4",
+            items: [
+                { text: "Objetivos", type: "subheading" },
+                { type: "space" },
+                { text: "Entrega el calendario lunar (código 6291) a los jugadores.", type: "check" }
+            ]
+        }
+    };
+
+    let currentAttemptObjective = null;
+    let activeChapterModalId = null;
+
+    function sincronizarCapitulosDesdeServidor() {
+        if (!miJugadorData) return;
+
+        for (let id in objectivesData) {
+            const obj = objectivesData[id];
+            const btn = document.getElementById(`obj-btn-${id}`);
+            const icon = document.getElementById(`obj-icon-${id}`);
+
+            const localUnlockedKey = `game_unlocked_${JUGADOR_ACTUAL}_ch_${id}`;
+            const estaDesbloqueadoLocal = (localStorage.getItem(localUnlockedKey) === 'true');
+
+            if (obj.sheetKey) {
+                const valorServidor = String(miJugadorData[obj.sheetKey] || '').toLowerCase().trim();
+                const estaDesbloqueadoServidor = (valorServidor === 'yes' || valorServidor === 'si' || valorServidor === 'true' || valorServidor === '1');
+                
+                if (estaDesbloqueadoServidor) {
+                    localStorage.setItem(localUnlockedKey, 'true');
+                }
+
+                const estaDesbloqueado = estaDesbloqueadoLocal || estaDesbloqueadoServidor;
+                obj.unlocked = estaDesbloqueado;
+
+                if (btn && icon) {
+                    if (estaDesbloqueado) {
+                        btn.classList.remove('locked');
+                        icon.textContent = "👁️";
+                    } else {
+                        btn.classList.add('locked');
+                        icon.textContent = "🔒";
+                    }
+                }
+            }
+        }
+    }
+
+    function guardarEstadoMemoria(chapterId) {
+        const checksObj = {};
+        const checkboxes = document.querySelectorAll('#phase-content-body input[type="checkbox"]');
+        checkboxes.forEach((cb) => {
+            const index = cb.getAttribute('data-index');
+            if (index !== null) {
+                checksObj[index] = cb.checked;
+            }
+        });
+        localStorage.setItem(`game_checked_items_${JUGADOR_ACTUAL}_ch_${chapterId}`, JSON.stringify(checksObj));
+    }
+
+    function openObjective(id) {
+        const obj = objectivesData[id];
+        if (obj.unlocked) {
+            reproducirClick();
+            showContent(id);
+        } else {
+            currentAttemptObjective = id;
+            document.getElementById('modalTitle').textContent = `Desbloquear Capítulo ${id}`;
+            document.getElementById('password-input').value = '';
+            document.getElementById('error-msg').style.display = 'none';
+            document.getElementById('password-modal').classList.add('active');
+            document.getElementById('password-input').focus();
+        }
+    }
+
+    function checkPassword() {
+        const input = document.getElementById('password-input').value.trim().toLowerCase();
+        const errorMsg = document.getElementById('error-msg');
+        const obj = objectivesData[currentAttemptObjective];
+
+        if (input === obj.code) {
+            obj.unlocked = true;
+            localStorage.setItem(`game_unlocked_${JUGADOR_ACTUAL}_ch_${currentAttemptObjective}`, 'true');
+
+            const btn = document.getElementById(`obj-btn-${currentAttemptObjective}`);
+            const icon = document.getElementById(`obj-icon-${currentAttemptObjective}`);
+            btn.classList.remove('locked');
+            icon.textContent = "👁️";
+            
+            const targetId = currentAttemptObjective;
+            closeModal('password-modal');
+            reproducirCorrect();
+
+            if (obj.sheetKey) {
+                miJugadorData[obj.sheetKey] = 'yes';
+
+                const params = new URLSearchParams();
+                params.append('origen', JUGADOR_ACTUAL);
+                params.append('destino', '');
+                params.append('tipo', 'capitulo');
+                params.append('objeto', obj.sheetKey);
+                params.append('cantidad', 'yes');
+
+                fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: params
+                }).catch(err => console.error("Error al guardar capítulo en Apps Script:", err));
+            }
+
+            showContent(targetId);
+        } else {
+            reproducirNope();
+            errorMsg.style.display = 'block';
+        }
+    }
+
+    document.getElementById('password-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') checkPassword();
+    });
+
+    function showContent(id) {
+        const obj = objectivesData[id];
+        const body = document.getElementById('phase-content-body');
+        activeChapterModalId = id;
+        
+        let listItemsHTML = '';
+        let checkCounter = 0;
+        obj.items.forEach((item) => {
+            if (item.type === "subheading") {
+                listItemsHTML += `</ul><h3>${item.text}</h3><ul>`;
+            } else if (item.type === "space") {
+                listItemsHTML += `</ul><div style="height: 15px;"></div><ul>`;
+            } else if (item.type === "line") {
+                listItemsHTML += `</ul><hr style="border: none; border-top: 1px solid #1e90ff; margin: 20px 0;"><ul>`;
+            } else if (item.type === "info") {
+                listItemsHTML += `<li class="info-item"><span class="obj-text">${item.text}</span></li>`;
+            } else {
+                listItemsHTML += `<li><input type="checkbox" data-index="${checkCounter}" onchange="toggleCheck(this, ${id})"><span class="obj-text">${item.text}</span></li>`;
+                checkCounter++;
+            }
+        });
+
+        body.innerHTML = `<h2>${obj.title}</h2><ul>${listItemsHTML}</ul>`;
+        
+        const savedChecks = localStorage.getItem(`game_checked_items_${JUGADOR_ACTUAL}_ch_${id}`);
+        if (savedChecks) {
+            try {
+                const checksObj = JSON.parse(savedChecks);
+                const checkboxes = body.querySelectorAll('input[type="checkbox"]');
+                checkboxes.forEach(cb => {
+                    const idx = cb.getAttribute('data-index');
+                    if (checksObj[idx]) {
+                        cb.checked = true;
+                        const textSpan = cb.nextElementSibling;
+                        if (textSpan) textSpan.style.textDecoration = 'line-through';
+                    }
+                });
+            } catch (e) {
+                console.error("Error al cargar checks", e);
+            }
+        }
+
+        document.getElementById('content-modal').classList.add('active');
+    }
+
+    function toggleCheck(checkbox, chapterId) {
+        const textSpan = checkbox.nextElementSibling;
+        if (checkbox.checked) {
+            if (textSpan) textSpan.style.textDecoration = 'line-through';
+        } else {
+            if (textSpan) textSpan.style.textDecoration = 'none';
+        }
+        guardarEstadoMemoria(chapterId);
+    }
+
+    function solicitarReiniciarCapitulos() {
+        mostrarModalConfirmacion("¿Estás seguro de reiniciar todos los capítulos? Se desmarcarán las casillas y se bloquearán de nuevo.", function() {
+            for (let id in objectivesData) {
+                localStorage.removeItem(`game_checked_items_${JUGADOR_ACTUAL}_ch_${id}`);
+                localStorage.removeItem(`game_unlocked_${JUGADOR_ACTUAL}_ch_${id}`);
+            }
+
+            for (let id in objectivesData) {
+                const obj = objectivesData[id];
+                if (id !== '1') {
+                    obj.unlocked = false;
+                    if (miJugadorData && obj.sheetKey) {
+                        miJugadorData[obj.sheetKey] = '';
+                    }
+                }
+            }
+
+            for (let id = 2; id <= 4; id++) {
+                const btn = document.getElementById(`obj-btn-${id}`);
+                const icon = document.getElementById(`obj-icon-${id}`);
+                if (btn && icon) {
+                    btn.classList.add('locked');
+                    icon.textContent = "🔒";
+                }
+            }
+
+            closeModal('content-modal');
+
+            for (let id in objectivesData) {
+                const obj = objectivesData[id];
+                if (obj.sheetKey) {
+                    const params = new URLSearchParams();
+                    params.append('origen', JUGADOR_ACTUAL);
+                    params.append('destino', '');
+                    params.append('tipo', 'capitulo');
+                    params.append('objeto', obj.sheetKey);
+                    params.append('cantidad', '');
+
+                    fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        body: params
+                    }).catch(err => console.error("Error al reiniciar capítulo en Apps Script:", err));
+                }
+            }
+
+            reproducirClick();
+        });
+    }
+
+    function closeModal(modalId) {
+        reproducirClick();
+        document.getElementById(modalId).classList.remove('active');
+        if (modalId === 'password-modal') {
+            currentAttemptObjective = null;
+        }
+        if (modalId === 'content-modal') {
+            activeChapterModalId = null;
+        }
+    }
+  </script>
+</body>
+</html>

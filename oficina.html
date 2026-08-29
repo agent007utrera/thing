@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Common Office - U.S. Outpost 31</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #d0d8e8;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .game-container {
+            position: relative;
+            width: 100%;
+            max-width: 1100px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.9), 0 0 20px rgba(0, 150, 255, 0.15);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .game-image {
+            width: 100%;
+            display: block;
+        }
+
+        .hotspot {
+            position: absolute;
+            background-color: rgba(0, 180, 255, 0.1); 
+            border: 2px dashed rgba(0, 180, 255, 0.4);
+            cursor: pointer;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .hotspot:hover {
+            background-color: rgba(0, 180, 255, 0.35);
+            border-color: rgba(0, 220, 255, 0.9);
+        }
+
+        #radioPanel   { top: 25%; left: 3%; width: 14%; height: 32%; }
+        #mainDesk     { top: 52%; left: 66%; width: 31%; height: 42%; }
+        #bulletin     { top: 20%; left: 60%; width: 14%; height: 26%; }
+        #filesDesk    { top: 40%; left: 47%; width: 10%; height: 18%; }
+        #leftDesk     { top: 50%; left: 15%; width: 23%; height: 35%; }
+        #gasolinaSpot { top: 70%; left: 40%; width: 12%; height: 20%; }
+
+        .player-hud {
+            position: fixed;
+            top: 15px;
+            right: 20px;
+            background: rgba(5, 11, 20, 0.95);
+            border: 1px solid #0055ff;
+            color: #00f0ff;
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+            z-index: 1500;
+            box-shadow: 0 0 12px rgba(0, 85, 255, 0.4);
+            border-radius: 2px;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #141a24;
+            border: 1px solid #2a3b55;
+            border-radius: 8px;
+            padding: 25px;
+            width: 90%;
+            max-width: 450px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 5px 25px rgba(0,120,255,0.2);
+            position: relative;
+            text-align: left;
+        }
+
+        .modal-content h3 {
+            margin-top: 0;
+            color: #4da6ff;
+            font-size: 1.2rem;
+            border-bottom: 1px solid #22304a;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+
+        .modal-content p {
+            line-height: 1.6;
+            color: #b8c7e0;
+            font-size: 0.95rem;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 1.5rem;
+            color: #7a92b8;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+
+        .close-btn:hover {
+            color: #fff;
+        }
+
+        /* Estilos específicos para el popup de terminal */
+        #terminalModal {
+            z-index: 2500;
+        }
+
+        #terminalModal .modal-content {
+            width: 96vw;
+            height: 94vh;
+            max-width: 1200px;
+            max-height: 800px;
+            padding: 0;
+            background-color: #050b05;
+            border: 20px solid #1a1a1a;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #terminalModal .close-btn {
+            position: fixed;
+            top: 25px;
+            right: 35px;
+            z-index: 2600;
+            color: #33ff33;
+            font-size: 2rem;
+            text-shadow: 0 0 10px rgba(51, 255, 51, 0.5);
+            background: #0a220a;
+            border: 1px solid #33ff33;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+
+        #terminalModal .close-btn:hover {
+            background: #33ff33;
+            color: #000;
+            box-shadow: 0 0 15px #33ff33;
+        }
+
+        .drawer-img {
+            width: 100%;
+            max-height: 250px;
+            object-fit: contain;
+            margin-top: 15px;
+            border-radius: 6px;
+            border: 1px solid #0080ff;
+            cursor: pointer;
+        }
+
+        .drawer-btn {
+            background-color: #0080ff;
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .drawer-btn:hover {
+            background-color: #0066cc;
+        }
+
+        #fullscreenViewer {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+            z-index: 3000;
+            cursor: pointer;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #fullscreenViewer img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+
+        .back-btn {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background-color: #141a24;
+            color: #4da6ff;
+            border: 1px solid #2a3b55;
+            padding: 8px 12px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: bold;
+            text-decoration: none;
+            border-radius: 4px;
+            z-index: 1500;
+        }
+
+        #timerContainer {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background: linear-gradient(135deg, #0d131f 0%, #162235 100%);
+            color: #7df9ff;
+            border: 2px solid #2e4a70;
+            box-shadow: inset 0 0 10px rgba(0, 180, 255, 0.2), 0 0 12px rgba(0, 150, 255, 0.3);
+            padding: 8px 14px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            border-radius: 6px;
+            z-index: 1500;
+            text-shadow: 0 0 6px rgba(125, 249, 255, 0.6);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="player-hud" id="playerHud">IDENTIDAD: CARGANDO...</div>
+
+    <div id="timerContainer">EST: <span id="countdown">00:10</span></div>
+    <a href="#" id="backBtn" class="back-btn" onclick="playClick(); volverAlMapa(event)">VOLVER AL MAPA</a>
+
+    <div class="game-container" id="gameContainer">
+        <img src="images/common_office.jpg" alt="Common Office - Outpost 31" class="game-image">
+
+        <div class="hotspot" id="radioPanel" onclick="playClick(); openRadioModal()"></div>
+        <div class="hotspot" id="mainDesk" onclick="playClick(); openTerminalModal()"></div>
+        <div class="hotspot" id="bulletin" onclick="playClick(); openModal('Pizarra de Anuncios', 'Notas y comunicados antiguos de la estación cubiertos de hielo.')"></div>
+        <div class="hotspot" id="filesDesk" onclick="playClick(); openModal('Archivadores', 'Carpetas llenas de informes geológicos destruidos por la humedad.')"></div>
+        <div class="hotspot" id="leftDesk" onclick="playClick(); revisarEscritorioLinterna()"></div>
+        <div class="hotspot" id="gasolinaSpot" onclick="playClick(); revisarGasolina()"></div>
+    </div>
+
+    <div id="gameModal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="playClick(); closeModal()">&times;</button>
+            <h3 id="modalTitle">Título</h3>
+            <div id="modalBody">
+                <p id="modalText">Texto...</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="terminalModal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="playClick(); closeTerminalModal()">&times;</button>
+            <iframe id="terminalFrame" src="" style="width: 100%; height: 100%; border: none;"></iframe>
+        </div>
+    </div>
+
+    <div id="fullscreenViewer" onclick="playClick(); closeFullscreen()">
+        <img id="fullscreenImg" src="" alt="Pantalla completa">
+    </div>
+
+    <script>
+        let jugadorActual = "JUGADOR";
+
+        function actualizarIdentidadJugador() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const jugadorUrl = urlParams.get('jugador');
+
+            if (jugadorUrl && jugadorUrl.trim() !== "") {
+                jugadorActual = jugadorUrl.trim();
+                localStorage.setItem('jugador_activo_global', jugadorActual);
+            } else {
+                const jugadorGuardado = localStorage.getItem('jugador_activo_global');
+                if (jugadorGuardado && jugadorGuardado.trim() !== "") {
+                    jugadorActual = jugadorGuardado;
+                } else {
+                    try {
+                        if (window.parent && window.parent !== window) {
+                            const parentNameElem = window.parent.document.getElementById('char-name');
+                            if (parentNameElem) {
+                                const textoPadre = parentNameElem.innerText.trim();
+                                if (textoPadre !== "" && textoPadre !== "Cargando...") {
+                                    jugadorActual = textoPadre;
+                                    localStorage.setItem('jugador_activo_global', jugadorActual);
+                                }
+                            }
+                        }
+                    } catch (e) {}
+                }
+            }
+
+            document.getElementById('playerHud').innerText = `IDENTIDAD: ${jugadorActual.toUpperCase()}`;
+            localStorage.setItem('jugador_nombre_real', jugadorActual);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            actualizarIdentidadJugador();
+        });
+
+        function playClick() {
+            const clickAudio = new Audio('audio/click.mp3');
+            clickAudio.play().catch(e => console.log("Audio error:", e));
+        }
+
+        let timeLeft = 10;
+        const countdownEl = document.getElementById('countdown');
+        const timerContainerEl = document.getElementById('timerContainer');
+        const backBtnEl = document.getElementById('backBtn');
+
+        const timerInterval = setInterval(() => {
+            timeLeft--;
+            if (timeLeft >= 0) {
+                let formattedTime = "00:" + (timeLeft < 10 ? "0" : "") + timeLeft;
+                countdownEl.innerText = formattedTime;
+            }
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                const clingAudio = new Audio('audio/cling.mp3');
+                clingAudio.play().catch(e => console.log("Audio error:", e));
+                timerContainerEl.style.display = 'none';
+                backBtnEl.style.display = 'block';
+            }
+        }, 1000);
+
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw_XBJaqPoyMa0YeebEsrcoqXTMoIqIy4DGvSi9PulBb9YG2YD055wIbRa_yMyFUVJG/exec";
+
+        function openModal(title, text) {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalBody').innerHTML = `<p id="modalText">${text}</p>`;
+            document.getElementById('gameModal').style.display = 'flex';
+        }
+
+        function openTerminalModal() {
+            const iframe = document.getElementById('terminalFrame');
+            if (!iframe.src || iframe.src === "" || iframe.src === window.location.href) {
+                iframe.src = 'terminal.html';
+            }
+            document.getElementById('terminalModal').style.display = 'flex';
+        }
+
+        function closeTerminalModal() {
+            document.getElementById('terminalModal').style.display = 'none';
+        }
+
+        function openRadioModal() {
+            openModal('Panel de Radio', 'Los equipos están completamente congelados y desmantelados.');
+        }
+
+        function revisarEscritorioLinterna() {
+            document.getElementById('modalTitle').innerText = 'Escritorio de Guardia';
+            document.getElementById('modalBody').innerHTML = `<p style="text-align: center; color: #4da6ff;">Conectando con la base y revisando cajones...</p>`;
+            document.getElementById('gameModal').style.display = 'flex';
+
+            fetch(SCRIPT_URL + "?action=getStatus&item=linterna")
+                .then(response => response.json())
+                .then(data => {
+                    if (data.disponible === false) {
+                        document.getElementById('modalBody').innerHTML = `
+                            <p>Un escritorio de madera cubierto de escarcha. Inspeccionas el compartimento secreto, pero <strong>no encuentras nada de interés</strong>; alguien ya se llevó lo que había aquí.</p>
+                        `;
+                    } else {
+                        document.getElementById('modalBody').innerHTML = `
+                            <p>Al retirar una acumulación de hielo en el cajón inferior, vislumbras un objeto.</p>
+                            <img src="images/linterna.jpg" alt="Linterna" class="drawer-img" onclick="playClick(); showFullscreenImage('images/linterna.jpg')">
+                            <p style="margin-top: 15px; text-align: center; color: #4da6ff;">Encuentras una linterna. ¿Quieres cogerla?</p>
+                            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 15px;">
+                                <button class="drawer-btn" style="background-color: #28a745;" onclick="playClick(); preguntarCodigoLinterna()">Sí</button>
+                                <button class="drawer-btn" style="background-color: #dc3545;" onclick="playClick(); closeModal()">No</button>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error("Error al consultar Google Sheets:", error);
+                    document.getElementById('modalBody').innerHTML = `<p style="color: #dc3545; text-align: center;">Error de conexión con el servidor.</p>`;
+                });
+        }
+
+        function preguntarCodigoLinterna() {
+            const pickupAudio = new Audio('audio/pickup.mp3');
+            pickupAudio.play().catch(e => console.log("Audio error:", e));
+
+            document.getElementById('modalBody').innerHTML = `
+                <p style="text-align: center; color: #5cdb95; font-weight: bold;">¡Has decidido coger la linterna!</p>
+                <p style="margin-top: 10px; text-align: center;">Para sincronizarla y guardarla en tu inventario, introduce el código <strong>5555</strong> en tu gestor de equipo.</p>
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="drawer-btn" onclick="playClick(); registrarLinternaCogida()">Entendido y Sincronizado</button>
+                </div>
+            `;
+        }
+
+        function registrarLinternaCogida() {
+            document.getElementById('modalBody').innerHTML = `<p style="text-align: center; color: #4da6ff;">Actualizando base de datos central...</p>`;
+
+            fetch(SCRIPT_URL + "?action=updateStatus&item=linterna")
+                .then(response => response.json())
+                .then(data => {
+                    if(data.success) {
+                        document.getElementById('modalBody').innerHTML = `<p style="text-align: center; color: #5cdb95;">Linterna añadida al inventario y registrada.</p>`;
+                    } else {
+                        document.getElementById('modalBody').innerHTML = `<p style="text-align: center; color: #dc3545;">Error al registrar en la base de datos.</p>`;
+                    }
+                    setTimeout(() => {
+                        closeModal();
+                    }, 1000);
+                })
+                .catch(error => {
+                    console.error("Error de red:", error);
+                    closeModal();
+                });
+        }
+
+        function revisarGasolina() {
+            document.getElementById('modalTitle').innerText = 'Depósito de Gasolina';
+            document.getElementById('modalBody').innerHTML = `<p style="text-align: center; color: #4da6ff;">Verificando niveles de combustible...</p>`;
+            document.getElementById('gameModal').style.display = 'flex';
+
+            fetch(SCRIPT_URL + "?action=getStatus&item=gasolina")
+                .then(response => response.json())
+                .then(data => {
+                    if (data.disponible === false) {
+                        document.getElementById('modalBody').innerHTML = `
+                            <p>Inspeccionas el bidón, pero <strong>no encuentras nada de interés</strong>; alguien ya se ha llevado el combustible o está completamente vacío.</p>
+                        `;
+                    } else {
+                        document.getElementById('modalBody').innerHTML = `
+                            <p>Ves un bidón de combustible en buen estado junto a la pared.</p>
+                            <img src="images/gasolina.jpg" alt="Gasolina" class="drawer-img" onclick="playClick(); showFullscreenImage('images/gasolina.jpg')">
+                            <p style="margin-top: 15px; text-align: center; color: #4da6ff;">Encuentras gasolina. ¿Quieres llevártela?</p>
+                            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 15px;">
+                                <button class="drawer-btn" style="background-color: #28a745;" onclick="playClick(); preguntarCodigoGasolina()">Sí</button>
+                                <button class="drawer-btn" style="background-color: #dc3545;" onclick="playClick(); closeModal()">No</button>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error("Error al consultar Google Sheets:", error);
+                    document.getElementById('modalBody').innerHTML = `<p style="color: #dc3545; text-align: center;">Error de conexión con el servidor.</p>`;
+                });
+        }
+
+        function preguntarCodigoGasolina() {
+            const pickupAudio = new Audio('audio/pickup.mp3');
+            pickupAudio.play().catch(e => console.log("Audio error:", e));
+
+            document.getElementById('modalBody').innerHTML = `
+                <p style="text-align: center; color: #5cdb95; font-weight: bold;">¡Has decidido coger la gasolina!</p>
+                <p style="margin-top: 10px; text-align: center;">Para registrar el suministro, introduce el código <strong>8888</strong> en tu terminal.</p>
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="drawer-btn" onclick="playClick(); registrarGasolinaCogida()">Entendido y Sincronizado</button>
+                </div>
+            `;
+        }
+
+        function registrarGasolinaCogida() {
+            document.getElementById('modalBody').innerHTML = `<p style="text-align: center; color: #4da6ff;">Actualizando base de datos central...</p>`;
+
+            fetch(SCRIPT_URL + "?action=updateStatus&item=gasolina")
+                .then(response => response.json())
+                .then(data => {
+                    if(data.success) {
+                        document.getElementById('modalBody').innerHTML = `<p style="text-align: center; color: #5cdb95;">Combustible añadido al inventario.</p>`;
+                    } else {
+                        document.getElementById('modalBody').innerHTML = `<p style="text-align: center; color: #dc3545;">Error al registrar en la base de datos.</p>`;
+                    }
+                    setTimeout(() => {
+                        closeModal();
+                    }, 1000);
+                })
+                .catch(error => {
+                    console.error("Error de red:", error);
+                    closeModal();
+                });
+        }
+
+        function showFullscreenImage(src) {
+            const viewer = document.getElementById('fullscreenViewer');
+            const img = document.getElementById('fullscreenImg');
+            img.src = src;
+            viewer.style.display = 'flex';
+        }
+
+        function closeFullscreen() {
+            document.getElementById('fullscreenViewer').style.display = 'none';
+        }
+
+        function closeModal() {
+            document.getElementById('gameModal').style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            let modal = document.getElementById('gameModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+            let terminalModal = document.getElementById('terminalModal');
+            if (event.target == terminalModal) {
+                closeTerminalModal();
+            }
+        }
+
+        function volverAlMapa(event) {
+            event.preventDefault();
+            const doorAudio = new Audio('audio/opendoor.mp3');
+            doorAudio.play().catch(e => console.log("Audio error:", e));
+            setTimeout(() => {
+                window.location.href = `mapa.html?jugador=${encodeURIComponent(jugadorActual)}`;
+            }, 1500);
+        }
+    </script>
+</body>
+</html>

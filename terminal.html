@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>U.S. N.S.I. ESTACIÓN R1 - TERMINAL PRINCIPAL</title>
+    <style>
+        :root {
+            --term-green: #33ff33;
+            --term-dim: #117711;
+            --term-darkgreen: #0a220a;
+            --term-bg: #050b05;
+            --term-amber: #ffb000;
+            --term-red: #ff3333;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', Courier, monospace;
+            user-select: none;
+        }
+
+        body {
+            background-color: #000;
+            color: var(--term-green);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background-color: #0a220a;
+            color: var(--term-green);
+            border: 1px solid var(--term-green);
+            padding: 8px 12px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: bold;
+            text-decoration: none;
+            border-radius: 4px;
+            z-index: 1500;
+            box-shadow: 0 0 10px rgba(51, 255, 51, 0.2);
+        }
+
+        .back-btn:hover {
+            background: var(--term-green);
+            color: #000;
+            box-shadow: 0 0 15px var(--term-green);
+        }
+
+        /* CRT Screen Frame & Effects */
+        .crt-container {
+            width: 96vw;
+            height: 94vh;
+            max-width: 1200px;
+            max-height: 800px;
+            background-color: var(--term-bg);
+            border: 20px solid #1a1a1a;
+            border-radius: 20px;
+            box-shadow: 0 0 50px rgba(51, 255, 51, 0.15), inset 0 0 80px rgba(0, 0, 0, 0.8);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            padding: 25px;
+        }
+
+        /* CRT Scanlines and Flicker */
+        .crt-container::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 10;
+            background-size: 100% 3px, 6px 100%;
+            pointer-events: none;
+        }
+
+        .crt-container::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: rgba(18, 16, 16, 0.08);
+            opacity: 0;
+            z-index: 10;
+            pointer-events: none;
+            animation: flicker 0.15s infinite;
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.12; }
+            50% { opacity: 0.08; }
+            100% { opacity: 0.15; }
+        }
+
+        /* Text Glow */
+        .glow {
+            text-shadow: 0 0 5px var(--term-green);
+        }
+
+        /* Header */
+        header {
+            border-bottom: 2px solid var(--term-green);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            text-transform: uppercase;
+        }
+
+        .sys-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        .sys-status {
+            font-size: 0.85rem;
+            color: var(--term-green);
+        }
+
+        /* Main Content Display Area */
+        .screen-content {
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
+            padding-right: 10px;
+        }
+
+        /* Custom Scrollbar for CRT feel */
+        .screen-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        .screen-content::-webkit-scrollbar-track {
+            background: var(--term-darkgreen);
+        }
+        .screen-content::-webkit-scrollbar-thumb {
+            background: var(--term-green);
+        }
+
+        /* Views */
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+        }
+
+        /* Login Screen */
+        .login-box {
+            margin-top: 20px;
+            text-align: center;
+            border: 1px dashed var(--term-green);
+            padding: 30px;
+            background-color: rgba(51, 255, 51, 0.03);
+        }
+
+        .login-title {
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+        }
+
+        .input-group {
+            margin-top: 25px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #access-key {
+            background-color: transparent;
+            border: 1px solid var(--term-green);
+            color: var(--term-green);
+            font-family: inherit;
+            font-size: 1.2rem;
+            padding: 5px 12px;
+            outline: none;
+            letter-spacing: 4px;
+            text-shadow: 0 0 5px var(--term-green);
+            text-transform: lowercase;
+            -webkit-text-security: disc;
+        }
+
+        .btn-term {
+            background: var(--term-green);
+            color: #000;
+            border: none;
+            padding: 7px 18px;
+            font-family: inherit;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .btn-term:hover {
+            background: #fff;
+            box-shadow: 0 0 10px #fff;
+        }
+
+        .error-msg {
+            color: var(--term-red);
+            text-shadow: 0 0 5px var(--term-red);
+            margin-top: 15px;
+            font-weight: bold;
+            display: none;
+        }
+
+        /* Menu System */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .menu-btn {
+            border: 1px solid var(--term-green);
+            padding: 15px;
+            background: rgba(51, 255, 51, 0.05);
+            color: var(--term-green);
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+        }
+
+        .menu-btn:hover {
+            background: var(--term-green);
+            color: #000;
+            box-shadow: 0 0 10px var(--term-green);
+        }
+
+        .menu-btn h3 {
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+
+        .menu-btn p {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        /* Cards & Lists */
+        .survivor-select {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: 1px solid var(--term-green);
+            color: var(--term-green);
+            padding: 8px 12px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .tab-btn.active, .tab-btn:hover {
+            background: var(--term-green);
+            color: #000;
+            font-weight: bold;
+        }
+
+        .survivor-card {
+            border: 1px solid var(--term-green);
+            padding: 20px;
+            background: rgba(51, 255, 51, 0.02);
+            line-height: 1.6;
+        }
+
+        .survivor-card h2 {
+            border-bottom: 1px solid var(--term-green);
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+            color: #fff;
+            text-shadow: 0 0 5px #fff;
+        }
+
+        .survivor-img {
+            float: right;
+            width: 130px;
+            height: 150px;
+            object-fit: cover;
+            border: 1px solid var(--term-green);
+            margin-left: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 0 10px rgba(51, 255, 51, 0.2);
+        }
+
+        .field-label {
+            color: var(--term-amber);
+            font-weight: bold;
+        }
+
+        /* ASCII Map Display */
+        .ascii-map {
+            font-family: monospace;
+            white-space: pre;
+            line-height: 1.1;
+            font-size: 0.75rem;
+            background: #000;
+            padding: 15px;
+            border: 1px solid var(--term-green);
+            overflow-x: auto;
+            margin-bottom: 15px;
+        }
+
+        /* Logs Table */
+        .log-entry {
+            border-left: 3px solid var(--term-green);
+            padding-left: 12px;
+            margin-bottom: 15px;
+            background: rgba(51, 255, 51, 0.02);
+            padding-top: 5px;
+            padding-bottom: 5px;
+        }
+
+        .log-date {
+            color: var(--term-amber);
+            font-size: 0.85rem;
+        }
+
+        /* Blood Test Tool */
+        .test-box {
+            border: 1px solid var(--term-amber);
+            padding: 20px;
+            text-align: center;
+            background: rgba(255, 176, 0, 0.05);
+            margin-top: 15px;
+        }
+
+        .test-result {
+            margin-top: 20px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            padding: 15px;
+            display: none;
+        }
+
+        .result-human {
+            border: 2px solid var(--term-green);
+            color: var(--term-green);
+            background: rgba(51, 255, 51, 0.1);
+        }
+
+        .result-thing {
+            border: 2px dashed var(--term-red);
+            color: var(--term-red);
+            background: rgba(255, 51, 51, 0.15);
+            animation: pulse-red 0.5s infinite alternate;
+        }
+
+        @keyframes pulse-red {
+            from { box-shadow: 0 0 5px var(--term-red); }
+            to { box-shadow: 0 0 20px var(--term-red); }
+        }
+
+        /* Footer Nav */
+        footer {
+            border-top: 1px solid var(--term-green);
+            padding-top: 10px;
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-back {
+            background: transparent;
+            border: 1px solid var(--term-green);
+            color: var(--term-green);
+            padding: 5px 15px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .nav-back:hover {
+            background: var(--term-green);
+            color: #000;
+        }
+
+        .blink {
+            animation: blinker 1s cubic-bezier(0.5, 0, 1, 1) infinite alternate;
+        }
+
+        @keyframes blinker {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="crt-container glow">
+    <header>
+        <div>
+            <div class="sys-title">U.S. N.S.I. ESTACIÓN R1</div>
+            <div style="font-size: 0.75rem; opacity: 0.8;">DEC VT100 TERMINAL SYSTEM - ANTÁRTIDA</div>
+        </div>
+        <div style="text-align: right;">
+            <div class="sys-status">TEMP EXT: -50°C</div>
+            <div class="sys-status">ESTADO: <span style="color: var(--term-red);" class="blink">AMENAZA BIOLÓGICA / RIESGO CRÍTICO</span></div>
+        </div>
+    </header>
+
+    <div class="screen-content">
+        <!-- LOGIN VIEW -->
+        <div id="view-login" class="view active">
+            <div class="login-box">
+                <div class="login-title">SISTEMA DE SEGURIDAD CENTRAL - ESTACIÓN R1</div>
+                <p>ACCESO RESTRINGIDO A PERSONAL AUTORIZADO DEL PROGRAMA DE INVESTIGACIÓN ANTÁRTICA</p>
+                <br>
+                <p style="font-size: 0.85rem; color: var(--term-amber);">POR FAVOR, INTRODUZCA LA CLAVE DE ACCESO DE NIVEL 4:</p>
+                
+                <div class="input-group">
+                    <span>CLAVE:</span>
+                    <input type="text" id="access-key" autocomplete="off" autofocus placeholder="------" onkeydown="if(event.key==='Enter') { playZip(); handleLogin(event); }">
+                    <button type="button" class="btn-term" onclick="playZip(); handleLogin(event)">INGRESAR</button>
+                </div>
+                
+                <div id="login-error" class="error-msg">ACCESO DENEGADO: CLAVE INCORRECTA</div>
+            </div>
+            
+            <div style="margin-top: 40px; font-size: 0.75rem; opacity: 0.6; text-align: center;">
+                [NSI-SYS-R1-82] - ESTACIÓN DE INVESTIGACIÓN NACIONAL R1 - SECTOR ANTÁRTICO
+            </div>
+        </div>
+
+        <!-- MAIN MENU VIEW -->
+        <div id="view-menu" class="view">
+            <p style="margin-bottom: 15px;">BIENVENIDO, OPERADOR. SELECCIONE UNA OPCIÓN DEL MENÚ PRINCIPAL:</p>
+            
+            <div class="menu-grid">
+                <div class="menu-btn" onclick="playZip(); showView('view-personal')">
+                    <h3>[1] REGISTRO DE PERSONAL</h3>
+                    <p>Expedientes e historial detallado de los 5 supervivientes de la R1.</p>
+                </div>
+                <div class="menu-btn" onclick="playZip(); showView('view-mapa')">
+                    <h3>[2] MAPA DE LAS INSTALACIONES</h3>
+                    <p>Plano estructural de la Estación R1 y zonas subterráneas.</p>
+                </div>
+                <div class="menu-btn" onclick="playZip(); showView('view-seguridad')">
+                    <h3>[3] REGISTROS DE SEGURIDAD</h3>
+                    <p>Bitácora de incidentes, ejecuciones y averías en calderas.</p>
+                </div>
+                <div class="menu-btn" onclick="playZip(); showView('view-recursos')">
+                    <h3>[4] INVENTARIO Y RECURSOS</h3>
+                    <p>Estado de armas, suero reactivo, tarjetas de acceso y combustible.</p>
+                </div>
+                <div class="menu-btn" onclick="playZip(); showView('view-analisis')">
+                    <h3>[5] DIAGNÓSTICO SANGUÍNEO</h3>
+                    <p>Prueba con suero reactivo y estimulación térmica de muestras.</p>
+                </div>
+                <div class="menu-btn" style="border-color: var(--term-red);" onclick="playZip(); logout()">
+                    <h3 style="color: var(--term-red);">[6] CERRAR SESIÓN</h3>
+                    <p>Bloquear la terminal y regresar a la pantalla de clave.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- PERSONAL VIEW -->
+        <div id="view-personal" class="view">
+            <h3 style="margin-bottom: 15px; border-bottom: 1px solid var(--term-green); padding-bottom: 5px;">EXPEDIENTES DE SUPERVIVIENTES (5 INTEGRANTES)</h3>
+            
+            <div class="survivor-select">
+                <button class="tab-btn active" onclick="playZip(); loadSurvivor('doc', this)">Dr. Murray ("Doc")</button>
+                <button class="tab-btn" onclick="playZip(); loadSurvivor('sullivan', this)">Donnie Sullivan</button>
+                <button class="tab-btn" onclick="playZip(); loadSurvivor('mcgee', this)">Cnel. Jason McGee</button>
+                <button class="tab-btn" onclick="playZip(); loadSurvivor('livingstone', this)">Dr. H. Livingstone</button>
+                <button class="tab-btn" onclick="playZip(); loadSurvivor('manning', this)">Jerry Manning</button>
+            </div>
+
+            <div id="survivor-details" class="survivor-card">
+                <!-- Content injected dynamically via JS -->
+            </div>
+        </div>
+
+        <!-- MAPA VIEW -->
+        <div id="view-mapa" class="view">
+            <h3>PLANO ESTRUCTURAL - ESTACIÓN DE INVESTIGACIÓN R1</h3>
+            <p style="font-size: 0.85rem; margin-bottom: 10px;">ESQUEMA DE INSTALACIONES Y NIVELES SUBTERRÁNEOS</p>
+            
+            <div class="ascii-map">
++-------------------------------------------------------------------------+
+|                                                                         |
+|  [ HELIPUERTO DE EVACUACIÓN ]     [ BASE NORUEGA (A 80 KM) ]            |
+|        |                                 |                              |
+|  +-----+---------------------------------+------------------------+     |
+|  |                ESTACIÓN DE INVESTIGACIÓN R1                    |     |
+|  |                                                                |     |
+|  |  +--------------------+   +--------------------+   +---------+ |     |
+|  |  | ENFERMERÍA Y LAB.   |   | PABELLÓN DE OFIC.  |   | CASETA  | |     |
+|  |  | (Dr. Murray)       |   | (Cnel. McGee)      |   | PERROS  | |     |
+|  |  +--------------------+   +--------------------+   +----+----+ |     |
+|  |  | SALA DE CALDERAS   |   | RECREO Y COMEDOR   |   | X  |    |     |
+|  |  | (Jerry Manning)    |   | (D. Sullivan)      |   +----+----+ |     |
+|  |  +--------------------+   +--------------------+               |     |
+|  |            |                                                   |     |
+|  |  [ ACCESO BÚNKER / LAB. INFERIOR ] (Dr. Livingstone / Tarjeta)   |     |
+|  +----------------------------------------------------------------+     |
+|                                                                         |
++-------------------------------------------------------------------------+
+[ LEYENDA ]: X = Foco Inicial Infección Canina | Status: Nivel de Aislamiento Crítico
+            </div>
+
+            <div style="border: 1px solid var(--term-green); padding: 12px; background: rgba(51,255,51,0.03);">
+                <p class="field-label">NOTAS DE SEGURIDAD GEOGRÁFICA Y CONDICIONES:</p>
+                <ul style="margin-left: 20px; font-size: 0.85rem; margin-top: 5px;">
+                    <li>Temperatura exterior: -50°C. Viento de tormenta severa. Exposición sin traje térmico: Letal en &lt; 2 minutos (Anotación: El Coronel McGee fue visto sin abrigo exterior en plena tormenta).</li>
+                    <li>Nivel Subterráneo: Laboratorio de genética accesible solo mediante tarjeta magnética en posesión exclusiva del Dr. Livingstone.</li>
+                    <li>Sector de Calderas: Inoperativo por sabotaje térmico perpetrado por la entidad asimilada de Ollister.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- SEGURIDAD Y LOGS VIEW -->
+        <div id="view-seguridad" class="view">
+            <h3>REGISTROS DE SEGURIDAD Y BITÁCORA DE INCIDENTES - R1</h3>
+            <br>
+            
+            <div class="log-entry">
+                <div class="log-date">[ LOG R1-82.01 - 09:15 ] - LLEGADA DEL CANINO NORUEGO Y PRIMERA ASIMILACIÓN</div>
+                <p>Un perro husky proveniente de la base noruega desató el caos tras ser recluido en las jaulas. Donnie Sullivan presenció una inteligencia fría y extraña en el animal antes de sufrir un desmayo. La entidad asimiló el cuerpo de Sullivan, constituyendo el primer caso humano en la base.</p>
+            </div>
+
+            <div class="log-entry">
+                <div class="log-date">[ LOG R1-82.02 - 18:30 ] - DESCUBRIMIENTO DEL DR. MURRAY Y EJECUCIÓN DE OLLISTER</div>
+                <p>El Dr. Murray ("Doc") dedujo la replicación celular y desarrolló un suero reactivo. Al aplicarlo a Ollister, la prueba confirmó que la muestra no era humana. Doc le propinó nueve disparos y procedió a incinerarlo con el quemador manual para reducir la entidad a cenizas.</p>
+            </div>
+
+            <div class="log-entry">
+                <div class="log-date">[ LOG R1-82.03 - 02:10 ] - SABOTAJE DE CALDERAS Y ANOMALÍA TÉRMICA DEL CNEL. MCGEE</div>
+                <p>Ollister atacó al mecánico Jerry Manning en la sala de calefacción antes de ser destruido. Manning le asestó un golpe directo con su llave inglesa sin causar efecto antes del sabotaje térmico. Más tarde, Manning divisó al Coronel McGee caminando a -50°C en guerrera militar.</p>
+            </div>
+
+            <div class="log-entry">
+                <div class="log-date">[ LOG R1-82.04 - 06:45 ] - REVELACIÓN DEL DIARIO DE MCREADY EN EL BÚNKER INFERIOR</div>
+                <p>El Dr. Harry Livingstone localizó el diario de J.R. McReady en el laboratorio inferior, comprendiendo el peligro de infección a escala planetaria. Livingstone se ha atrincherado bajo clave de acceso magnética en el nivel inferior.</p>
+            </div>
+        </div>
+
+        <!-- RECURSOS VIEW -->
+        <div id="view-recursos" class="view">
+            <h3>ESTADO DE RECURSOS E INVENTARIO DE ARMAMENTO - ESTACIÓN R1</h3>
+            <br>
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                <thead>
+                    <tr style="border-bottom: 1px solid var(--term-green);">
+                        <th style="padding: 8px;">ITEM / EQUIPAMIENTO</th>
+                        <th style="padding: 8px;">CANTIDAD</th>
+                        <th style="padding: 8px;">UBICACIÓN</th>
+                        <th style="padding: 8px;">ESTADO</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px dashed var(--term-dim);">
+                        <td style="padding: 8px;">Incinerador Manual de Mano</td>
+                        <td style="padding: 8px;">1 Unidad</td>
+                        <td style="padding: 8px;">Dr. Murray ("Doc")</td>
+                        <td style="padding: 8px; color: var(--term-green);">OPERATIVO</td>
+                    </tr>
+                    <tr style="border-bottom: 1px dashed var(--term-dim);">
+                        <td style="padding: 8px;">Suero Reactivo Muestral</td>
+                        <td style="padding: 8px;">2 Dosis</td>
+                        <td style="padding: 8px;">Dr. Murray ("Doc")</td>
+                        <td style="padding: 8px; color: var(--term-amber);">RESERVAS CRÍTICAS</td>
+                    </tr>
+                    <tr style="border-bottom: 1px dashed var(--term-dim);">
+                        <td style="padding: 8px;">Pistola Beretta 9mm</td>
+                        <td style="padding: 8px;">1 Unidad (2 Balas)</td>
+                        <td style="padding: 8px;">Dr. Murray ("Doc")</td>
+                        <td style="padding: 8px; color: var(--term-red);">MUNICIÓN CASI AGOTADA</td>
+                    </tr>
+                    <tr style="border-bottom: 1px dashed var(--term-dim);">
+                        <td style="padding: 8px;">Tarjeta Acceso Lab Inferior</td>
+                        <td style="padding: 8px;">1 Tarjeta Única</td>
+                        <td style="padding: 8px;">Dr. Harry Livingstone</td>
+                        <td style="padding: 8px; color: var(--term-green);">RETENIDO EN NIVELES INFERIORES</td>
+                    </tr>
+                    <tr style="border-bottom: 1px dashed var(--term-dim);">
+                        <td style="padding: 8px;">Diario de J.R. McReady</td>
+                        <td style="padding: 8px;">1 Documento</td>
+                        <td style="padding: 8px;">Dr. Harry Livingstone</td>
+                        <td style="padding: 8px; color: var(--term-amber);">EVIDENCIA CIENTÍFICA</td>
+                    </tr>
+                    <tr style="border-bottom: 1px dashed var(--term-dim);">
+                        <td style="padding: 8px;">Llave Inglesa Pesada / Herramientas</td>
+                        <td style="padding: 8px;">1 Juego</td>
+                        <td style="padding: 8px;">Jerry Manning</td>
+                        <td style="padding: 8px; color: var(--term-green);">EN POSESIÓN</td>
+                    </tr>
+                    <tr style="border-bottom: 1px dashed var(--term-dim);">
+                        <td style="padding: 8px;">Sistema de Calderas Térmicas</td>
+                        <td style="padding: 8px;">1 Central</td>
+                        <td style="padding: 8px;">Sector de Mantenimiento</td>
+                        <td style="padding: 8px; color: var(--term-red);">SABOTEADO / INOPERATIVO</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- DIAGNOSTICO SANGUINEO VIEW -->
+        <div id="view-analisis" class="view">
+            <h3>SISTEMA DE PRUEBA Y PRUEBA DE SUERO REACTIVO</h3>
+            <p style="font-size: 0.85rem;">Basado en el descubrimiento del Dr. Murray: La muestra biológica extraída reacciona violentamente revelando la naturaleza celular mutante al aplicar el suero o calor extremo.</p>
+
+            <div class="test-box">
+                <p style="margin-bottom: 15px; color: var(--term-amber);">SELECCIONE EL INTEGRANTE A EXAMINAR:</p>
+                
+                <select id="subject-select" style="background: #000; color: var(--term-green); border: 1px solid var(--term-green); padding: 8px; font-family: inherit; font-size: 1rem; width: 80%; max-width: 350px; margin-bottom: 15px;">
+                    <option value="doc">Dr. Murray ("Doc")</option>
+                    <option value="sullivan">Donnie Sullivan</option>
+                    <option value="mcgee">Coronel Jason McGee</option>
+                    <option value="livingstone">Dr. Harry Livingstone</option>
+                    <option value="manning">Jerry Manning</option>
+                </select>
+
+                <br>
+                <button class="btn-term" onclick="playZip(); runBloodTest()" style="padding: 10px 25px;">APLICAR DOSIS DE SUERO Y REACCIÓN TÉRMICA</button>
+
+                <div id="test-output" class="test-result">
+                    <!-- Dynamic test result -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer>
+        <button id="btn-main-menu" class="nav-back" style="display: none;" onclick="playZip(); showView('view-menu')">← MENÚ PRINCIPAL</button>
+        <span style="font-size: 0.75rem; opacity: 0.7;">TERMINAL ID: STATION-R1-MAIN-NET</span>
+        <span style="font-size: 0.75rem; color: var(--term-green);" id="clock-display">00:00:00</span>
+    </footer>
+</div>
+
+<script>
+    // Audio helper for zip sound replacing clicks
+    function playZip() {
+        const zipAudio = new Audio('audio/zip.mp3');
+        zipAudio.play().catch(e => console.log("Audio error:", e));
+    }
+
+    // Survivors Database - Estación R1
+    const survivors = {
+        doc: {
+            nombre: "Dr. Murray (\"Doc\")",
+            rol: "Médico Principal de la Estación R1",
+            estado: "ACTIVO / PSICOSIS POLAR - Severamente traumatizado por el descubrimiento y la ejecución de Ollister.",
+            equipo: "Beretta (2 balas), Incinerador de mano, 2 Inyecciones de suero reactivo.",
+            historial: "Reputado cirujano de urgencias que eligió el aislamiento de la Antártida huyendo del desgaste urbano, buscando la rutina tranquila de chequeos rutinarios. Sin embargo, su retiro se convirtió en una pesadilla cuando el perro husky traído por la base noruega desató el caos. Observó con horror clínico la deformación celular de los canes en la perrera y no tardó en deducir la aterradora verdad. Tras desarrollar dos dosis de un suero reactivo, confirmó sus peores sospechas al aplicárselo a su compañero Ollister: la muestra reaccionó revelando una monstruosidad que no era humana. Doc le propinó nueve disparos, pero al ver que la entidad seguía con vida, usó un incinerador manual para reducirla a cenizas.",
+            psique: "Acosado por una severa psicosis polar debido al trauma y la tensión. Desconfía visceralmente de cualquier contacto físico y de sus compañeros Sullivan, Manning y el coronel McGee. Su única meta es cazar a los infectados restantes y arrasar la estación hasta los cimientos para impedir que la infección alcance a la humanidad.",
+            foto: "images/jugador3.jpg"
+        },
+        sullivan: {
+            nombre: "Donnie Sullivan",
+            rol: "Encargado de la Perrera / Asimilado",
+            estado: "ASIMILADO - Cuerpos e identidad humana suplantados por la entidad alienígena.",
+            equipo: "Ninguno. (Inmune al frío extremo y con resistencia biológica sobrehumana).",
+            historial: "Donnie siempre fue considerado un hombre rudo, de pocas palabras y vocabulario limitado, que prefería la leal compañía de los huskies al trato con los oficiales. Cuando el perro huido de la base noruega ingresó en la perrera, Donnie notó algo antinatural en la mirada del animal: una inteligencia fría e insondable. Durante el incidente en las jaulas sufrió un supuesto desmayo; en realidad, fue la primera víctima humana asimilada por la entidad en la base. Tras absorber sus recuerdos, infectó a Ollister y posteriormente al coronel Jason McGee.",
+            psique: "Ahora, bajo la apariencia de Sullivan, la criatura habita su cuerpo. Aunque posee inmunidad al frío extremo y una resistencia biológica sobrehumana, se enfrenta a dois grandes riesgos: los animales detectan su naturaleza alterada actuando de forma errática cerca de él, y debe cuidar de no expresarse con palabras demasiado elaboradas para no despertar sospechas entre los supervivientes. Su objetivo prioritario es eliminar a Doc Murray, proteger al coronel McGee y conseguir un billete de retorno a la civilización a bordo del helicóptero.",
+            foto: "images/jugador4.jpg"
+        },
+        mcgee: {
+            nombre: "Coronel Jason McGee",
+            rol: "Comandante Militar de la Estación R1 / Asimilado",
+            estado: "ASIMILADO - Mantiene el control militar de la estación bajo falsa identidad.",
+            equipo: "Autoridad militar de la base. (Inmune al frío, resistente al daño no ígneo).",
+            historial: "El coronel McGee era el máximo responsable de la seguridad y operaciones de la base militar R1, un veterano estricto acostumbrado al mando absoluto. Tras la infección inicial en la perrera, McGee fue abordado en secreto e infectado por Donnie Sullivan, convirtiéndose en el alienígena de mayor rango dentro de la instalación. Durante el caos desencadenado por la avería de la calefacción, McGee fue visto por el mecánico Manning internándose solo en medio de una tormenta helada a -50 °C vistiendo únicamente su guerrera militar, un acto letal para un humano pero inofensivo para la criatura.",
+            psique: "Con el intelecto extraterrestre operando tras sus galones, McGee oculta los restos mutados de Ollister y manipula a los recién llegados del equipo de rescate. Su meta es consolidar su liderazgo, proteger el laboratorio subterráneo, averiguar cómo descubrió Doc la infección de Ollister y garantizar a toda costa que Sullivan aborde el helicóptero de evacuación.",
+            foto: "images/jugador2.jpg"
+        },
+        livingstone: {
+            nombre: "Dr. Harry Livingstone",
+            rol: "Científico Genetista (Laboratorio Inferior)",
+            estado: "AISLADO EN BÚNKER - Atrincherado en el nivel inferior de la base.",
+            equipo: "Diario de J.R. McReady, Tarjeta de acceso exclusivo al laboratorio inferior.",
+            historial: "Livingstone es un brillante pero distante genetista asignado al laboratorio subterráneo de la R1, responsable de investigaciones confidenciales sobre el genoma humano en condiciones de frío extremo y la conservación de bancos de ADN animal. Totalmente ajeno a la matanza inicial en la superficie, reaccionó con escepticismo cuando Doc Murray bajó al laboratorio aterrorizado hablándole de criaturas imitadoras. Sin embargo, su postura cambió drásticamente al hallar el diario personal de J.R. McReady, comprendiendo el alcance apocalíptico de la amenaza.",
+            psique: "Sabiendo que solo él posee la tarjeta de acceso al laboratorio inferior, vive sumido en una profunda paranoia. No confía en ninguno de sus compañeros de estación y su único propósito es destruir todas las muestras de la investigación científica y encontrar la manera de escapar hacia el exterior con el equipo de rescate.",
+            foto: "images/jugador1.jpg"
+        },
+        manning: {
+            nombre: "Jerry Manning",
+            rol: "Jefe de Mantenimiento y Mecánico",
+            estado: "DESAPARECIDO - La última vez que se le vio estaba en la sala de las calderas.",
+            equipo: "Llave inglesa grande, Herramientas de mantenimiento pesadas.",
+            historial: "Manning es un veterano técnico pragmático y profundamente creyente, responsable del correcto funcionamiento del sistema de calderas y suministros de la base. Su vida cambió trágicamente cuando fue atacado por Ollister en el sector de calderas; a pesar de propinarle un fuerte golpe con su llave inglesa en pleno rostro, Ollister ni se inmutó antes de sabotear los paneles térmicos. Aterrorizado por el fallo de la calefacción y tras presenciar de lejos cómo el coronel McGee caminaba sin abrigo en plena tormenta, Manning se refugió entre los conductos calientes de la caldera.",
+            psique: "Aterrorizado y convencido de que la base está maldita, desconfía abiertamente del comportamiento frenético de Doc, de la mirada extraña de Sullivan y del milagroso estado de salud de McGee a temperaturas bajo cero. Manning no tiene intención de reparar la dañada instalación y solo busca huir desesperadamente.",
+            foto: "images/jerry.jpg"
+        }
+    };
+
+    // View Navigation
+    function showView(viewId) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
+        
+        const mainBtn = document.getElementById('btn-main-menu');
+        if (viewId === 'view-login' || viewId === 'view-menu') {
+            mainBtn.style.display = 'none';
+        } else {
+            mainBtn.style.display = 'inline-block';
+        }
+
+        if(viewId === 'view-personal') {
+            loadSurvivor('doc', document.querySelector('.tab-btn'));
+        }
+    }
+
+    // Login Handler
+    function handleLogin(e) {
+        if(e) e.preventDefault();
+        const pass = document.getElementById('access-key').value.trim().toLowerCase();
+        const error = document.getElementById('login-error');
+        
+        if (pass === 'banana') {
+            error.style.display = 'none';
+            document.getElementById('access-key').value = '';
+            showView('view-menu');
+        } else {
+            error.style.display = 'block';
+            const errorAudio = new Audio('audio/error.mp3');
+            errorAudio.play().catch(err => console.log("Audio error:", err));
+            document.getElementById('access-key').value = '';
+        }
+    }
+
+    function logout() {
+        showView('view-login');
+    }
+
+    // Survivor Tab Loader
+    function loadSurvivor(key, btnEl) {
+        if(btnEl) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btnEl.classList.add('active');
+        }
+
+        const data = survivors[key];
+        const container = document.getElementById('survivor-details');
+        
+        container.innerHTML = `
+            <img src="${data.foto}" alt="${data.nombre}" class="survivor-img">
+            <h2>${data.nombre}</h2>
+            <p><span class="field-label">CARGO / ROL:</span> ${data.rol}</p>
+            <p><span class="field-label">ESTADO ACTUAL:</span> ${data.estado}</p>
+            <p><span class="field-label">EQUIPAMIENTO EN POSESIÓN:</span> ${data.equipo}</p>
+            <br style="clear: both;">
+            <p><span class="field-label">HISTORIAL PERSONAL Y HECHOS OCURRIDOS:</span></p>
+            <p style="text-align: justify; margin-top: 5px;">${data.historial}</p>
+            <br>
+            <p><span class="field-label">EVALUACIÓN PSICOLÓGICA Y OBJETIVOS:</span></p>
+            <p style="text-align: justify; margin-top: 5px;">${data.psique}</p>
+        `;
+    }
+
+    // Interactive Blood / Serum Test Tool
+    function runBloodTest() {
+        const subject = document.getElementById('subject-select').value;
+        const out = document.getElementById('test-output');
+        out.style.display = 'block';
+        out.className = 'test-result';
+        out.innerHTML = '<span class="blink">APLICANDO DOSIS DE SUERO REACTIVO Y CALOR A LA MUESTRA...</span>';
+
+        setTimeout(() => {
+            const isThing = (subject === 'sullivan' || subject === 'mcgee');
+
+            if (isThing) {
+                out.className = 'test-result result-thing';
+                out.innerHTML = `¡REACCIÓN MUTAGÉNICA VIOLENTA DETECTADA!<br>LA MUESTRA CELULAR SE DEFORMA AGRESIVAMENTE AL CONTACTO.<br>⚠️ [EL SUJETO ES UN ORGANISMO ASIMILADO - LA COSA] ⚠️`;
+            } else {
+                out.className = 'test-result result-human';
+                out.innerHTML = `SIN REACCIÓN MUTANTE EN LA MUESTRA.<br>CELULAS ESTABLES, SIN DEFENSA NI METAMORFOSIS DEFENSIVA.<br>✓ [SUJETO CONFIRMADO HUMANO]`;
+            }
+        }, 1500);
+    }
+
+    // Real-time Clock Simulator
+    function updateClock() {
+        const now = new Date();
+        const hrs = String(now.getHours()).padStart(2, '0');
+        const mins = String(now.getMinutes()).padStart(2, '0');
+        const secs = String(now.getSeconds()).padStart(2, '0');
+        document.getElementById('clock-display').innerText = `${hrs}:${mins}:${secs}`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+</script>
+</body>
+</html>
