@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calibrador Polígono Esférico 360°</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #d0d8e8;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .coord-hud {
+            width: 100%;
+            max-width: 1400px;
+            background: rgba(5, 11, 20, 0.95);
+            border: 2px solid #0055ff;
+            border-radius: 6px;
+            color: #7df9ff;
+            padding: 12px 20px;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            box-shadow: 0 5px 20px rgba(0, 85, 255, 0.3);
+            font-family: 'Share Tech Mono', monospace;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 12px;
+            z-index: 2000;
+        }
+
+        .game-container {
+            position: relative;
+            width: 100%;
+            max-width: 1400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.9), 0 0 20px rgba(0, 150, 255, 0.15);
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: crosshair;
+            user-select: none;
+            margin-bottom: 20px;
+            background: #000;
+        }
+
+        .game-image {
+            width: 100%;
+            display: block;
+        }
+
+        .css-box {
+            background: rgba(0, 255, 100, 0.1);
+            border: 1px solid rgba(0, 255, 100, 0.5);
+            padding: 10px 14px;
+            border-radius: 4px;
+            color: #5cdb95;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: pre-wrap;
+            font-size: 0.78rem;
+            max-width: 620px;
+            max-height: 180px;
+            overflow: auto;
+            line-height: 1.35;
+        }
+        .css-box:hover {
+            background: rgba(0, 255, 100, 0.2);
+        }
+
+        .status-text {
+            color: #ff7df9;
+            font-weight: bold;
+        }
+
+        .reset-btn {
+            background: #ff0055;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Share Tech Mono', monospace;
+            font-weight: bold;
+        }
+        .reset-btn:hover { background: #cc0044; }
+
+        .click-point {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #ff0055;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            pointer-events: none;
+        }
+        .click-point.first-point {
+            background: #00ffcc;
+            box-shadow: 0 0 10px #00ffcc;
+            width: 14px;
+            height: 14px;
+        }
+
+        #polyPreview {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .info {
+            max-width: 1400px;
+            width: 100%;
+            background: rgba(0, 30, 60, 0.6);
+            border: 1px solid #1a3a5c;
+            border-radius: 6px;
+            padding: 12px 18px;
+            font-size: 0.85rem;
+            color: #9ab;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        .info strong { color: #7df9ff; }
+        .info code {
+            background: rgba(0,0,0,0.4);
+            padding: 1px 5px;
+            border-radius: 3px;
+            color: #5cdb95;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="coord-hud">
+        <div>Estado: <span class="status-text" id="stepText">Haz clic para añadir vértices del polígono</span></div>
+        <div class="css-box" id="copyBtn" title="Clic para copiar">Dibuja el polígono…</div>
+        <button class="reset-btn" id="resetBtn">Reiniciar</button>
+    </div>
+
+    <div class="info">
+        <strong>Calibrador de Hotspot Poligonal (coordenadas esféricas)</strong><br>
+        1. Haz clic para colocar los vértices del polígono (mínimo 3 puntos).<br>
+        2. Cierra la forma haciendo clic cerca del punto <strong>turquesa</strong>.<br>
+        3. Se generará un array de <code>{yaw, pitch}</code> listo para el visor 360° con forma real.<br>
+        4. Haz clic en la caja verde para copiar el código.
+    </div>
+
+    <div class="game-container" id="gameContainer">
+
+
+
+        <img src="pano.png" alt="Panorama plana" class="game-image" id="panoImg">
+
+
+
+
+        <svg id="polyPreview">
+            <polygon id="svgPolygon" points="" fill="rgba(0, 255, 200, 0.28)" stroke="#00ffcc" stroke-width="2" stroke-dasharray="5"/>
+        </svg>
+    </div>
+
+    <script>
+        const container = document.getElementById('gameContainer');
+        const targetImg = document.getElementById('panoImg');
+        const stepText = document.getElementById('stepText');
+        const copyBtn = document.getElementById('copyBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const svgPolygon = document.getElementById('svgPolygon');
+
+        let points = [];
+        let pointElements = [];
+        let isCompleted = false;
+        let resultCode = "";
+
+        targetImg.onload = () => stepText.innerText = "Imagen cargada. Empieza a dibujar el polígono.";
+        targetImg.onerror = () => {
+            stepText.innerText = "Error: no se encontró pano.png (colócalo en la misma carpeta)";
+            stepText.style.color = "#ff5555";
+        };
+
+        function uvToSpherical(u, v) {
+            // Misma convención que el shader del visor 360°
+            const yaw   = (u - 0.5) * Math.PI * 2;
+            const pitch = (0.5 - v) * Math.PI;
+            return { yaw, pitch };
+        }
+
+        container.addEventListener('click', (e) => {
+            const rect = targetImg.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            if (x < 0 || y < 0 || x > rect.width || y > rect.height) return;
+
+            if (isCompleted) {
+                copiar();
+                return;
+            }
+
+            // Cerrar polígono
+            if (points.length >= 3) {
+                const first = points[0];
+                if (Math.hypot(x - first.px, y - first.py) < 18) {
+                    isCompleted = true;
+                    generarCodigo();
+                    stepText.innerText = "¡Polígono cerrado! Clic en la caja verde para copiar.";
+                    return;
+                }
+            }
+
+            const u = x / rect.width;
+            const v = y / rect.height;
+            const { yaw, pitch } = uvToSpherical(u, v);
+
+            points.push({ px: x, py: y, u, v, yaw, pitch });
+
+            const dot = document.createElement('div');
+            dot.className = points.length === 1 ? 'click-point first-point' : 'click-point';
+            dot.style.left = x + 'px';
+            dot.style.top  = y + 'px';
+            container.appendChild(dot);
+            pointElements.push(dot);
+
+            // Actualizar preview
+            svgPolygon.setAttribute('points', points.map(p => `${p.px},${p.py}`).join(' '));
+
+            stepText.innerText = points.length === 1
+                ? "Punto 1 (turquesa). Sigue añadiendo vértices."
+                : `Puntos: ${points.length}. Clic cerca del turquesa para cerrar.`;
+        });
+
+        function generarCodigo() {
+            const verts = points.map(p => 
+                `    { yaw: ${p.yaw.toFixed(4)}, pitch: ${p.pitch.toFixed(4)} }`
+            ).join(',\n');
+
+            resultCode = `const hotspotPolygon = [
+${verts}
+];
+
+// Cómo usarlo:
+// Cada objeto es un vértice del polígono en coordenadas esféricas.
+// El visor proyectará estos puntos cada frame para dibujar la forma real.`;
+
+            copyBtn.innerText = resultCode;
+        }
+
+        function copiar() {
+            if (!resultCode) return;
+            // Solo el array limpio
+            const clean = resultCode.split('// Cómo usarlo')[0].trim();
+            navigator.clipboard.writeText(clean).then(() => {
+                const t = stepText.innerText;
+                stepText.innerText = "¡Copiado al portapapeles!";
+                setTimeout(() => stepText.innerText = t, 1800);
+            }).catch(() => {
+                stepText.innerText = "Selecciona el texto y copia con Ctrl+C";
+            });
+        }
+
+        resetBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            points = [];
+            pointElements.forEach(el => el.remove());
+            pointElements = [];
+            isCompleted = false;
+            resultCode = "";
+            svgPolygon.setAttribute('points', '');
+            copyBtn.innerText = "Dibuja el polígono…";
+            stepText.innerText = "Haz clic para añadir vértices del polígono";
+        });
+
+        copyBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            copiar();
+        });
+    </script>
+</body>
+</html>
