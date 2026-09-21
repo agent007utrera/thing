@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Visor 360° Outpost 31 - Exterior</title>
+<title>Exterior</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
 /* =========================================================
@@ -239,7 +239,7 @@ canvas.drag{ cursor:grabbing; }
   overflow-y:auto;
   box-shadow:0 5px 25px rgba(0,120,255,0.25);
   position:relative;
-  text-align:left;
+  text-align:center;
   font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 .modal-content h3{
@@ -290,7 +290,7 @@ canvas.drag{ cursor:grabbing; }
     <div id="loading">Cargando visor 360° Exterior Outpost 31…</div>
 
     <!-- Ayuda inferior -->
-    <div id="help">Arrastra para mirar alrededor · Rueda para zoom · Clic en la puerta para volver al interior</div>
+    <!--     <div id="help">Arrastra para mirar alrededor · Rueda para zoom · Clic en la puerta para volver al interior</div>  -->
   </div>
 
   <!-- COLUMNA DERECHA: barra lateral de webcams -->
@@ -327,15 +327,65 @@ const IMAGE = "data:image/jpeg;base64,/9j/4QhoRXhpZgAASUkqAAgAAAADAA4BAgD4AwAAMg
    HOTSPOTS (vacío por ahora - se pueden añadir después)
    ========================================================= */
 const hotspots = [
+
+
+  // --- Ejemplo de hotspot que abre un popup ---
+  // (coordenadas de ejemplo, cámbialas con el calibrador)
+  {
+    id: "edificio",
+    points: [
+    { yaw: -2.8289, pitch: 0.2040 },
+    { yaw: -2.2934, pitch: 0.2605 },
+    { yaw: -1.8622, pitch: 0.1934 },
+    { yaw: -1.7201, pitch: 0.1157 },
+    { yaw: -1.7106, pitch: -0.0890 },
+    { yaw: -1.9428, pitch: -0.2090 },
+    { yaw: -2.7199, pitch: -0.2478 },
+    { yaw: -2.9521, pitch: -0.1631 },
+    { yaw: -2.9568, pitch: 0.0487 }
+    ],
+    action: "modal",
+    title: "Edificio de Vehículos",
+    text: "No puedes entrar ahí, todavía..."
+  },
+
+
+  // --- Ejemplo de hotspot que abre un popup ---
+  // (coordenadas de ejemplo, cámbialas con el calibrador)
+  {
+    id: "cobertizo",
+    points: [
+    { yaw: 2.5303, pitch: -0.2761 },
+    { yaw: 2.8952, pitch: -0.3255 },
+    { yaw: 3.0516, pitch: -0.2513 },
+    { yaw: 3.0610, pitch: -0.1031 },
+    { yaw: 2.9047, pitch: 0.0275 },
+    { yaw: 2.6820, pitch: 0.0275 },
+    { yaw: 2.5114, pitch: -0.1066 }
+    ],
+    action: "modal",
+    title: "Cobertizo",
+    text: "No puedes entrar ahí, todavía..."
+  },
+
+
+
+
+
+
+
   // --- Puerta: volver al interior ---
   // Mismas coordenadas que la puerta utilizada en interior.html.
   {
     id: "puerta-interior",
     points: [
-      { yaw: 0.4407, pitch: 0.1374 },
-      { yaw: 0.7060, pitch: 0.1115 },
-      { yaw: 0.7202, pitch: -0.3299 },
-      { yaw: 0.4312, pitch: -0.3516 }
+
+    { yaw: 0.0758, pitch: 0.1157 },
+    { yaw: 0.7060, pitch: 0.1157 },
+    { yaw: 1.0188, pitch: 0.0134 },
+    { yaw: 1.0140, pitch: -0.1243 },
+    { yaw: 0.4454, pitch: -0.2125 },
+    { yaw: 0.0521, pitch: -0.1419 }
     ],
     action: "go",
     url: "interior.html"
@@ -438,11 +488,34 @@ hotspots.forEach((hs, index) => {
   });
 });
 
+const clickAudio = new Audio("audio/click.mp3");
+const openDoorAudio = new Audio("audio/opendoor.mp3");
+
+function reproducirClick() {
+  try {
+    clickAudio.currentTime = 0;
+    clickAudio.play().catch(() => {});
+  } catch (e) {}
+}
+
+function entrarPorPuerta() {
+  try {
+    openDoorAudio.currentTime = 0;
+    const p = openDoorAudio.play();
+    if (p && typeof p.catch === "function") p.catch(() => {});
+  } catch (e) {}
+
+  setTimeout(() => {
+    window.location.href = urlConJugador("interior.html");
+  }, 2000);
+}
+
 function handleHotspotClick(hs) {
   if (hs.action === "go") {
-    window.location.href = urlConJugador(hs.url);
+    entrarPorPuerta();
   }
   else if (hs.action === "modal") {
+    reproducirClick();
     openModal(hs.title, hs.text);
   }
 }
@@ -458,8 +531,15 @@ function openModal(title, text) {
 }
 
 function closeModal() {
+  reproducirClick();
   modal.classList.remove("open");
 }
+
+document.querySelectorAll("button").forEach((button) => {
+  if (button.id !== "closeModalBtn") {
+    button.addEventListener("click", reproducirClick);
+  }
+});
 
 document.getElementById("closeModalBtn").addEventListener("click", closeModal);
 

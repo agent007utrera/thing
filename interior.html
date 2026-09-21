@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Visor 360° Outpost 31</title>
+<title>Interior</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
 /* =========================================================
@@ -239,7 +239,7 @@ canvas.drag{ cursor:grabbing; }
   overflow-y:auto;
   box-shadow:0 5px 25px rgba(0,120,255,0.25);
   position:relative;
-  text-align:left;
+  text-align:center;
   font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 .modal-content h3{
@@ -290,17 +290,17 @@ canvas.drag{ cursor:grabbing; }
     <div id="loading">Cargando visor 360°…</div>
 
     <!-- Ayuda inferior -->
-    <div id="help">Arrastra para mirar alrededor · Rueda para zoom · Clic en zonas brillantes</div>
+<!--    <div id="help">Arrastra para mirar alrededor · Rueda para zoom · Clic en zonas brillantes</div> -->
   </div>
 
   <!-- COLUMNA DERECHA: barra lateral de webcams -->
   <aside class="video-sidebar">
     <div class="video-header">
-      VISOR 360°
+      INTERIOR
       <span id="video-status">Conectando...</span>
     </div>
     <div id="video-grid"></div>
-    <p class="aforo-aviso">VISOR 360°</p>
+    <p class="aforo-aviso">INTERIOR</p>
   </aside>
 
 </div>
@@ -353,6 +353,38 @@ const hotspots = [
     action: "go",
     url: "exterior.html"
   },
+
+
+  // --- Puerta (lleva a otra escena) ---
+  {
+    id: "puerta2",
+    points: [
+    { yaw: 1.4452, pitch: 0.1288 },
+    { yaw: 1.7201, pitch: 0.1288 },
+    { yaw: 1.6964, pitch: -0.3819 },
+    { yaw: 1.4215, pitch: -0.3689 }
+    ],
+    action: "go",
+    url: "exterior.html"
+  },
+
+  // --- Ejemplo de hotspot que abre un popup ---
+  // (coordenadas de ejemplo, cámbialas con el calibrador)
+  {
+    id: "recreativa",
+    points: [
+    { yaw: -1.6679, pitch: 0.0163 },
+    { yaw: -1.5305, pitch: 0.0682 },
+    { yaw: -1.1609, pitch: 0.0509 },
+    { yaw: -1.1230, pitch: -0.3429 },
+    { yaw: -1.5447, pitch: -0.4035 },
+    { yaw: -1.6632, pitch: -0.3559 }
+    ],
+    action: "modal",
+    title: "Máquinas Recreativas",
+    text: "¿Ahora quieres echar una partida?"
+  },
+
 
   // --- Ejemplo de hotspot que abre un popup ---
   // (coordenadas de ejemplo, cámbialas con el calibrador)
@@ -486,13 +518,28 @@ hotspots.forEach((hs, index) => {
 /* =========================================================
    LÓGICA AL HACER CLIC EN UN HOTSPOT
    ========================================================= */
+const clickAudioUI = new Audio("audio/click.mp3");
+const openDoorAudio = new Audio("audio/opendoor.mp3");
+
+function reproducirClickUI() {
+  try { clickAudioUI.currentTime = 0; clickAudioUI.play().catch(() => {}); } catch (e) {}
+}
+
+function reproducirPuertaYIr(url) {
+  try {
+    openDoorAudio.currentTime = 0;
+    const p = openDoorAudio.play();
+    if (p && typeof p.catch === "function") p.catch(() => {});
+  } catch (e) {}
+  setTimeout(() => { window.location.href = urlConJugador(url); }, 2000);
+}
+
 function handleHotspotClick(hs) {
   if (hs.action === "go") {
-    // Cambiar de escena
-    window.location.href = urlConJugador(hs.url);
+    reproducirPuertaYIr(hs.url);
   }
   else if (hs.action === "modal") {
-    // Abrir popup
+    reproducirClickUI();
     openModal(hs.title, hs.text);
   }
 }
@@ -511,11 +558,17 @@ function openModal(title, text) {
 }
 
 function closeModal() {
+  reproducirClickUI();
   modal.classList.remove("open");
 }
 
 // Cerrar con el botón X
 document.getElementById("closeModalBtn").addEventListener("click", closeModal);
+
+// Cualquier otro botón de la interfaz produce el sonido de clic.
+document.querySelectorAll("button").forEach(btn => {
+  if (btn.id !== "closeModalBtn") btn.addEventListener("click", reproducirClickUI);
+});
 
 // Cerrar haciendo clic fuera del contenido
 modal.addEventListener("click", (e) => {
