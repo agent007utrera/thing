@@ -130,6 +130,17 @@
             metadata: { name: nombreVisible(jugadorActual), room: VIDEO_ROOM }
         });
         installDataConnection(conn);
+
+        // Si esta conexión concreta no llega a abrirse en unos segundos
+        // (red, NAT, wifi restrictivo...), la descartamos para que el
+        // heartbeat pueda reintentarla más adelante en vez de quedar
+        // "atascada" para siempre bloqueando el reintento.
+        setTimeout(() => {
+            if (!conn.open && dataConnections.get(id) === conn) {
+                try { conn.close(); } catch (_) {}
+                dataConnections.delete(id);
+            }
+        }, 10000);
     }
 
     function installDataConnection(conn) {
@@ -170,6 +181,7 @@
                 removeVideoCard(message.peerId);
                 dataConnections.delete(message.peerId);
                 activeCalls.delete(message.peerId);
+                delete peerNames[message.peerId];
             }
         });
 
@@ -291,7 +303,7 @@
     }
 
     // -----------------------------------------------------
-    // === ARREGLO PRINCIPAL: HEARTBEAT DE RECONEXIÓN ===
+    // === ARREGLO 1: HEARTBEAT DE RECONEXIÓN CON EL HOST ===
     // Si no soy el host y no tengo conexión abierta con el host,
     // lo reintento cada 5s. Esto es lo que faltaba: antes, si el
     // host se iba y volvía (o cambiaba), los que ya estaban en la
@@ -305,6 +317,27 @@
             connectToPeer(HOST_PEER_ID);
         }
     }, 5000);
+
+    // -----------------------------------------------------
+    // === ARREGLO 2: HEARTBEAT DE RECONEXIÓN CON CADA JUGADOR ===
+    // Las llamadas de vídeo van directas entre jugadores, no a
+    // través del host. Si una de esas conexiones directas se queda
+    // a medias (nunca llega a abrirse ni a dar error, por red/NAT),
+    // antes se quedaba bloqueada para siempre. Ahora, cada 6s,
+    // repasamos a todos los jugadores que conocemos (peerNames) y
+    // reintentamos con cualquiera que no esté realmente conectado.
+    // -----------------------------------------------------
+    setInterval(() => {
+        if (destroyed || !peer || peer.destroyed) return;
+        Object.keys(peerNames).forEach(id => {
+            if (id === peer.id) return;
+            const conn = dataConnections.get(id);
+            if (!conn || !conn.open) {
+                if (conn) dataConnections.delete(id);
+                connectToPeer(id);
+            }
+        });
+    }, 6000);
 
     window.addEventListener("beforeunload", () => salirDeLaLlamada(false));
     window.addEventListener("pagehide", () => salirDeLaLlamada(false));
