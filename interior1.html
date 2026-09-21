@@ -239,7 +239,7 @@ canvas.drag{ cursor:grabbing; }
   overflow-y:auto;
   box-shadow:0 5px 25px rgba(0,120,255,0.25);
   position:relative;
-  text-align:center;
+  text-align:left;
   font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 .modal-content h3{
@@ -290,7 +290,7 @@ canvas.drag{ cursor:grabbing; }
     <div id="loading">Cargando visor 360°…</div>
 
     <!-- Ayuda inferior -->
-<!--    <div id="help">Arrastra para mirar alrededor · Rueda para zoom · Clic en zonas brillantes</div> -->
+    <!--     <div id="help">Arrastra para mirar alrededor · Rueda para zoom · Clic en zonas brillantes</div> -->
   </div>
 
   <!-- COLUMNA DERECHA: barra lateral de webcams -->
@@ -354,7 +354,6 @@ const hotspots = [
     url: "exterior.html"
   },
 
-
   // --- Puerta (lleva a otra escena) ---
   {
     id: "puerta2",
@@ -367,6 +366,30 @@ const hotspots = [
     action: "go",
     url: "exterior.html"
   },
+
+
+  // --- Ejemplo de hotspot que abre un popup ---
+  // (coordenadas de ejemplo, cámbialas con el calibrador)
+  {
+    id: "nota",
+    points: [
+    { yaw: -3.1274, pitch: 0.1158 },
+    { yaw: -2.9852, pitch: 0.1071 },
+    { yaw: -2.9663, pitch: -0.1871 },
+    { yaw: -3.1179, pitch: -0.2001 }
+    ],
+    action: "modal",
+    title: "Nota encontrada",
+    text: "Un mensaje escrito con prisa. Habla de algo oculto cerca del generador. La letra está temblorosa..."
+  },
+
+
+
+
+
+
+
+
 
   // --- Ejemplo de hotspot que abre un popup ---
   // (coordenadas de ejemplo, cámbialas con el calibrador)
@@ -386,20 +409,7 @@ const hotspots = [
   },
 
 
-  // --- Ejemplo de hotspot que abre un popup ---
-  // (coordenadas de ejemplo, cámbialas con el calibrador)
-  {
-    id: "nota",
-    points: [
-    { yaw: -3.1274, pitch: 0.1158 },
-    { yaw: -2.9852, pitch: 0.1071 },
-    { yaw: -2.9663, pitch: -0.1871 },
-    { yaw: -3.1179, pitch: -0.2001 }
-    ],
-    action: "modal",
-    title: "Nota encontrada",
-    text: "Un mensaje escrito con prisa. Habla de algo oculto cerca del generador. La letra está temblorosa..."
-  },
+
 
   // --- Otro ejemplo de popup ---
   {
@@ -518,28 +528,13 @@ hotspots.forEach((hs, index) => {
 /* =========================================================
    LÓGICA AL HACER CLIC EN UN HOTSPOT
    ========================================================= */
-const clickAudioUI = new Audio("audio/click.mp3");
-const openDoorAudio = new Audio("audio/opendoor.mp3");
-
-function reproducirClickUI() {
-  try { clickAudioUI.currentTime = 0; clickAudioUI.play().catch(() => {}); } catch (e) {}
-}
-
-function reproducirPuertaYIr(url) {
-  try {
-    openDoorAudio.currentTime = 0;
-    const p = openDoorAudio.play();
-    if (p && typeof p.catch === "function") p.catch(() => {});
-  } catch (e) {}
-  setTimeout(() => { window.location.href = urlConJugador(url); }, 2000);
-}
-
 function handleHotspotClick(hs) {
   if (hs.action === "go") {
-    reproducirPuertaYIr(hs.url);
+    // Cambiar de escena
+    window.location.href = urlConJugador(hs.url);
   }
   else if (hs.action === "modal") {
-    reproducirClickUI();
+    // Abrir popup
     openModal(hs.title, hs.text);
   }
 }
@@ -558,17 +553,11 @@ function openModal(title, text) {
 }
 
 function closeModal() {
-  reproducirClickUI();
   modal.classList.remove("open");
 }
 
 // Cerrar con el botón X
 document.getElementById("closeModalBtn").addEventListener("click", closeModal);
-
-// Cualquier otro botón de la interfaz produce el sonido de clic.
-document.querySelectorAll("button").forEach(btn => {
-  if (btn.id !== "closeModalBtn") btn.addEventListener("click", reproducirClickUI);
-});
 
 // Cerrar haciendo clic fuera del contenido
 modal.addEventListener("click", (e) => {
@@ -768,16 +757,229 @@ function urlConJugador(url) {
 // Se resuelve ya (antes de arrancar las webcams) para que el nombre salga bien
 actualizarIdentidadJugador();
 </script>
+
 <!-- SCRIPT DE PEERJS PARA LAS WEBCAMS -->
-<script>
-    const VIDEO_ROOM = "outpost31_visor_4";
-</script>
-<script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
-<script src="webcams.js"></script>
-<!-- SCRIPT DE PEERJS PARA LAS WEBCAMS -->
+    <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+    <script>
+        // Nombre de la sala de vídeo: solo se ven entre sí los jugadores que usen el MISMO nombre.
+        // Cámbialo si este visor debe compartir sala de webcams con otra página.
+        const VIDEO_ROOM = "outpost31_visor_4";
+        const HOST_PEER_ID = "thething-2026-" + VIDEO_ROOM + "-host";
 
+        let peer = null;
+        let localStream = null;
+        let isHost = false;
+        let destroyed = false;
+        const peerNames = {};
+        const dataConnections = new Map();
+        const activeCalls = new Map();
 
+        const grid = document.getElementById("video-grid");
+        const statusEl = document.getElementById("video-status");
 
+        function setVideoStatus(text, good = false) {
+            if (!statusEl) return;
+            statusEl.textContent = text;
+            statusEl.style.color = good ? "#5cdb95" : "#5a7d9b";
+        }
 
+        function addVideoCard(id, name, stream, isLocal = false) {
+            let card = document.getElementById("video-card-" + id);
+            if (!card) {
+                card = document.createElement("div");
+                card.className = "video-card";
+                card.id = "video-card-" + id;
+                card.innerHTML = '<video autoplay playsinline></video><div class="video-name"></div>';
+                grid.appendChild(card);
+            }
+            const video = card.querySelector("video");
+            card.querySelector(".video-name").textContent = name || "Jugador";
+            video.muted = isLocal;
+            if (stream && video.srcObject !== stream) video.srcObject = stream;
+            updatePlayerCount();
+        }
+
+        function removeVideoCard(id) {
+            const card = document.getElementById("video-card-" + id);
+            if (card) card.remove();
+            updatePlayerCount();
+        }
+
+        function updatePlayerCount() {
+            const count = document.querySelectorAll(".video-card").length;
+            setVideoStatus(`Conectados (${count})`, true);
+        }
+
+        function broadcast(message) {
+            for (const conn of dataConnections.values()) {
+                if (conn.open) { try { conn.send(message); } catch (_) {} }
+            }
+        }
+
+        function callPeer(id, name) {
+            if (!peer || peer.destroyed || !localStream || id === peer.id || activeCalls.has(id)) return;
+            const call = peer.call(id, localStream, {
+                metadata: { name: nombreVisible(jugadorActual), room: VIDEO_ROOM }
+            });
+            activeCalls.set(id, call);
+
+            call.on("stream", stream => {
+                addVideoCard(id, name || peerNames[id] || "Jugador", stream, false);
+            });
+            call.on("close", () => { activeCalls.delete(id); removeVideoCard(id); });
+            call.on("error", () => { activeCalls.delete(id); removeVideoCard(id); });
+        }
+
+        function connectToPeer(id) {
+            if (!peer || peer.destroyed || !id || id === peer.id || dataConnections.has(id)) return;
+            const conn = peer.connect(id, {
+                reliable: true,
+                metadata: { name: nombreVisible(jugadorActual), room: VIDEO_ROOM }
+            });
+            installDataConnection(conn);
+        }
+
+        function installDataConnection(conn) {
+            const id = conn.peer;
+            dataConnections.set(id, conn);
+
+            conn.on("open", () => {
+                if (!isHost && id !== HOST_PEER_ID) {
+                    callPeer(id, peerNames[id] || "Jugador");
+                }
+                if (isHost) {
+                    const players = Object.entries(peerNames).map(([peerId, name]) => ({ peerId, name }));
+                    if (!players.some(p => p.peerId === peer.id)) {
+                        players.push({ peerId: peer.id, name: nombreVisible(jugadorActual) });
+                    }
+                    conn.send({ type: "roster", players });
+                    callPeer(id, peerNames[id] || "Jugador");
+                }
+            });
+
+            conn.on("data", message => {
+                if (!message || typeof message !== "object") return;
+                if (message.type === "roster") {
+                    (message.players || []).forEach(player => {
+                        if (!player || !player.peerId || player.peerId === peer.id) return;
+                        peerNames[player.peerId] = player.name || "Jugador";
+                        connectToPeer(player.peerId);
+                    });
+                }
+                if (message.type === "player-joined") {
+                    const player = message.player;
+                    if (!player || !player.peerId || player.peerId === peer.id) return;
+                    peerNames[player.peerId] = player.name || "Jugador";
+                    connectToPeer(player.peerId);
+                }
+                if (message.type === "player-left") {
+                    if (!message.peerId) return;
+                    removeVideoCard(message.peerId);
+                    dataConnections.delete(message.peerId);
+                    activeCalls.delete(message.peerId);
+                }
+            });
+
+            conn.on("close", () => { dataConnections.delete(id); removeVideoCard(id); });
+            conn.on("error", () => { dataConnections.delete(id); removeVideoCard(id); });
+        }
+
+        function acceptCall(call) {
+            const callerId = call.peer;
+            const callerName = (call.metadata && call.metadata.name) || peerNames[callerId] || "Jugador";
+            call.answer(localStream);
+            activeCalls.set(callerId, call);
+
+            call.on("stream", stream => {
+                peerNames[callerId] = callerName;
+                addVideoCard(callerId, callerName, stream, false);
+            });
+            call.on("close", () => { activeCalls.delete(callerId); removeVideoCard(callerId); });
+            call.on("error", () => { activeCalls.delete(callerId); removeVideoCard(callerId); });
+        }
+
+        async function startMedia() {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            addVideoCard("local", nombreVisible(jugadorActual) + " (TÚ)", localStream, true);
+        }
+
+        function createPeer() {
+            const options = { host: "0.peerjs.com", port: 443, path: "/", secure: true, debug: 1 };
+            peer = isHost ? new Peer(HOST_PEER_ID, options) : new Peer(options);
+
+            peer.on("open", id => {
+                if (isHost) {
+                    peerNames[id] = nombreVisible(jugadorActual);
+                    setVideoStatus("Sala activa", true);
+                } else {
+                    setVideoStatus("Conectando a sala...");
+                    connectToPeer(HOST_PEER_ID);
+                }
+            });
+
+            peer.on("connection", conn => {
+                if (isHost) {
+                    const name = (conn.metadata && conn.metadata.name) || "Jugador";
+                    peerNames[conn.peer] = name;
+                    installDataConnection(conn);
+                    broadcast({ type: "player-joined", player: { peerId: conn.peer, name } });
+                } else {
+                    installDataConnection(conn);
+                }
+            });
+
+            peer.on("call", acceptCall);
+
+            peer.on("error", err => {
+                if (err.type === "unavailable-id" && isHost) {
+                    isHost = false;
+                    try { peer.destroy(); } catch (_) {}
+                    peer = null;
+                    setTimeout(createPeer, 250);
+                    return;
+                }
+                if (err.type === "peer-unavailable" && !isHost) {
+                    setVideoStatus("Esperando tripulantes...");
+                    setTimeout(() => {
+                        if (!destroyed && peer && !peer.destroyed) connectToPeer(HOST_PEER_ID);
+                    }, 1500);
+                    return;
+                }
+                setVideoStatus("Error de enlace");
+            });
+        }
+
+        async function iniciarVideollamada() {
+            try {
+                await startMedia();
+            } catch (error) {
+                setVideoStatus("Cámara bloqueada");
+                return;
+            }
+            isHost = true;
+            createPeer();
+        }
+
+        function salirDeLaLlamada(navigate = true) {
+            destroyed = true;
+            try { broadcast({ type: "player-left", peerId: peer ? peer.id : null }); } catch (_) {}
+            activeCalls.forEach(call => { try { call.close(); } catch (_) {} });
+            dataConnections.forEach(conn => { try { conn.close(); } catch (_) {} });
+            activeCalls.clear();
+            dataConnections.clear();
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            if (peer) {
+                try { peer.destroy(); } catch (_) {}
+                peer = null;
+            }
+        }
+
+        window.addEventListener("beforeunload", () => salirDeLaLlamada(false));
+
+        iniciarVideollamada();
+    </script>
 </body>
 </html>
