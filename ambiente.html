@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sonido ambiente</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .bg-video {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            z-index: 0;
+            filter: brightness(0.6);
+        }
+
+        #start-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(3, 6, 12, 0.92);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            transition: opacity 0.8s ease;
+        }
+
+        .start-btn {
+            background: rgba(9, 21, 36, 0.9);
+            color: #00f0ff;
+            border: 2px solid #0055ff;
+            padding: 16px 45px;
+            font-size: 1.6rem;
+            font-family: 'Share Tech Mono', monospace;
+            letter-spacing: 3px;
+            cursor: pointer;
+            border-radius: 4px;
+            box-shadow: 0 0 25px rgba(0, 85, 255, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .start-btn:hover {
+            background: #0055ff;
+            color: #03060c;
+            box-shadow: 0 0 35px #00f0ff;
+            transform: scale(1.05);
+        }
+
+        .audio-hud {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(5, 11, 20, 0.88);
+            border: 1px solid #0055ff;
+            color: #00f0ff;
+            padding: 15px 20px;
+            border-radius: 4px;
+            z-index: 1000;
+            box-shadow: 0 0 15px rgba(0, 85, 255, 0.4);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            backdrop-filter: blur(4px);
+            max-width: 320px;
+        }
+
+        .hud-row {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .hud-row label {
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+            color: #79a1cc;
+        }
+
+        .hud-control {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .audio-hud input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+            accent-color: #00f0ff;
+        }
+
+        #track-info {
+            font-size: 0.7rem;
+            color: #5cdb95;
+            letter-spacing: 1px;
+            border-top: 1px solid #1a3a5c;
+            padding-top: 6px;
+            margin-top: 2px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="start-overlay">
+        <button class="start-btn" onclick="iniciarSistema()">INICIAR AUDIO</button>
+    </div>
+
+    <video id="bgVideo" class="bg-video" muted loop playsinline preload="auto">
+        <source src="images/exterior.mp4" type="video/mp4">
+        Tu navegador no soporta la reproducción de video.
+    </video>
+
+    <!-- Dos canales de audio independientes -->
+    <audio id="ambienteAudio" loop preload="auto"></audio>
+    <audio id="segundoPlanoAudio" loop preload="auto"></audio>
+
+    <div class="audio-hud">
+        <div class="hud-row">
+            <label>CANAL 1 (PRINCIPAL)</label>
+            <div class="hud-control">
+                <input type="range" id="volumenPrincipal" min="0" max="100" value="50" oninput="cambiarVolumenLocal('principal', this.value)">
+            </div>
+        </div>
+        <div class="hud-row">
+            <label>CANAL 2 (SEGUNDO PLANO)</label>
+            <div class="hud-control">
+                <input type="range" id="volumenSegundo" min="0" max="100" value="50" oninput="cambiarVolumenLocal('segundo', this.value)">
+            </div>
+        </div>
+        <div id="track-info">Sincronizando canales...</div>
+    </div>
+
+    <script>
+        // PEGA AQUÍ LA URL DE TU WEB APP DE GOOGLE APPS SCRIPT DE MÚSICA
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw5IbTVyUcgIKVwNwbGdVsildWX6eRM550acH0CKZZmKquMFeRjF58OpktzXbh9lMkU/exec"; 
+
+        const audioPrin = document.getElementById('ambienteAudio');
+        const audioSeg = document.getElementById('segundoPlanoAudio');
+        const video = document.getElementById('bgVideo');
+        const trackInfo = document.getElementById('track-info');
+
+        let sistemaIniciado = false;
+        let cancionPrinActual = "";
+        let cancionSegActual = "";
+
+        function cambiarVolumenLocal(canal, valor) {
+            let volDecimal = valor / 100;
+            if (canal === 'principal') {
+                audioPrin.volume = volDecimal;
+            } else {
+                audioSeg.volume = volDecimal;
+            }
+        }
+
+        function iniciarSistema() {
+            sistemaIniciado = true;
+            
+            const clickAudio = new Audio('audio/click.mp3');
+            clickAudio.play().catch(e => {});
+
+            video.play().catch(e => console.log("Error al reproducir video:", e));
+            
+            const overlay = document.getElementById('start-overlay');
+            overlay.style.opacity = '0';
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 800);
+
+            verificarMusicaServidor();
+            setInterval(verificarMusicaServidor, 4000); // Consulta cada 4 segundos
+        }
+
+        async function verificarMusicaServidor() {
+            if (!sistemaIniciado) return;
+
+            try {
+                let respuesta = await fetch(`${WEB_APP_URL}?action=getCurrentMusic`);
+                let data = await respuesta.json();
+
+                if (data && !data.error) {
+                    // --- CANAL PRINCIPAL ---
+                    let nuevaPrin = (data.cancion || "").trim();
+                    let volPrinNum = Number(data.volumen) || 50;
+
+                    if (nuevaPrin !== cancionPrinActual) {
+                        cancionPrinActual = nuevaPrin;
+                        audioPrin.src = `audio/${cancionPrinActual}`;
+                        audioPrin.play().catch(e => console.log("Error principal:", e));
+                    }
+                    audioPrin.volume = volPrinNum / 100;
+                    document.getElementById('volumenPrincipal').value = volPrinNum;
+
+                    // --- CANAL SEGUNDO PLANO ---
+                    let nuevaSeg = (data.segundoPlano || "").trim();
+                    let volSegNum = Number(data.volumenSegundo) || 50;
+
+                    if (nuevaSeg !== cancionSegActual) {
+                        cancionSegActual = nuevaSeg;
+                        if (cancionSegActual === "") {
+                            audioSeg.pause();
+                            audioSeg.src = "";
+                        } else {
+                            audioSeg.src = `audio/${cancionSegActual}`;
+                            audioSeg.play().catch(e => console.log("Error segundo plano:", e));
+                        }
+                    } else if (cancionSegActual !== "" && audioSeg.paused) {
+                        audioSeg.play().catch(e => {});
+                    }
+
+                    if (cancionSegActual !== "") {
+                        audioSeg.volume = volSegNum / 100;
+                        document.getElementById('volumenSegundo').value = volSegNum;
+                    }
+
+                    trackInfo.innerText = `P1: ${cancionPrinActual || 'Ninguno'} | P2: ${cancionSegActual || 'Vacío'}`;
+                }
+            } catch (err) {
+                console.log("Error sincronizando música:", err);
+            }
+        }
+    </script>
+</body>
+</html>

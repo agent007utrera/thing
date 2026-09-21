@@ -32,7 +32,6 @@
             min-height: 100vh;
         }
 
-        /* INTRODUCCIÓN ESTILO JUEGO */
         #intro-overlay {
             position: fixed;
             top: 0;
@@ -79,7 +78,6 @@
             transform: scale(0.1);
             opacity: 0;
             transition: transform 3.5s cubic-bezier(0.25, 1, 0.5, 1), opacity 1.5s ease-in;
-            filter: hue-rotate(0deg) saturate(1) contrast(1);
         }
 
         #zoom-container.active #zoom-image {
@@ -112,7 +110,6 @@
             transform: scale(1.05);
         }
 
-        /* PANTALLA PRINCIPAL SELECCIÓN */
         .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -172,7 +169,6 @@
             height: 105px;
             border: 2px solid var(--accent-color);
             object-fit: cover;
-            filter: hue-rotate(0deg) saturate(1) contrast(1);
             margin-right: 15px;
             background: #000;
             border-radius: 2px;
@@ -194,7 +190,6 @@
             letter-spacing: 1px;
         }
 
-        /* MODAL DE ACCESO / CLAVE */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -223,7 +218,6 @@
             font-family: var(--font-title);
             color: var(--accent-glow);
             margin-top: 0;
-            letter-spacing: 1px;
             font-size: 1.8rem;
         }
 
@@ -256,61 +250,38 @@
             cursor: pointer;
             font-family: var(--font-title);
             font-weight: bold;
-            letter-spacing: 1px;
             font-size: 1.2rem;
             border-radius: 2px;
-            transition: background 0.2s;
         }
 
-        .btn-entrar:hover {
-            background: var(--accent-glow);
-        }
+        .btn-entrar:hover { background: var(--accent-glow); }
 
         .close-btn {
-            position: absolute; 
-            top: 10px; 
-            right: 15px;
-            cursor: pointer; 
-            font-size: 1.5rem; 
-            font-weight: bold;
-            color: var(--accent-glow);
-            transition: 0.2s;
-            font-family: Arial, sans-serif;
+            position: absolute; top: 10px; right: 15px;
+            cursor: pointer; font-size: 1.5rem; color: var(--accent-glow);
         }
 
-        .close-btn:hover { color: #fff; }
-
         .error-msg { 
-            color: #ff6b6b; 
-            font-size: 0.75rem; 
-            margin-top: 10px; 
-            display: none; 
-            font-style: italic;
+            color: #ff6b6b; font-size: 0.75rem; margin-top: 10px; display: none; font-style: italic;
         }
     </style>
 </head>
 <body>
 
-    <!-- CAPA DE INTRODUCCIÓN ESTILO VIDEOJUEGO -->
     <div id="intro-overlay">
         <div id="studio-text">UTRERA PRODUCTIONS</div>
         <div id="zoom-container">
-            <img id="zoom-image" src="images/intro.gif" alt="Outpost 31 Intro">
+            <video id="zoom-image" src="images/intro.mp4" autoplay muted loop playsinline preload="auto"></video>
         </div>
         <button class="continue-btn" id="continueBtn" onclick="startMainMenu()">CONTINUAR</button>
     </div>
 
-    <!-- CONTENEDOR PRINCIPAL DE SELECCIÓN DE JUGADORES -->
     <div class="container" id="main-content">
         <h1>Selección de Identidad</h1>
         <div class="subtitle">Elija su registro personal para acceder al puesto avanzado...</div>
-        
-        <div class="character-grid" id="character-grid">
-            <!-- Generado dinámicamente -->
-        </div>
+        <div class="character-grid" id="character-grid"></div>
     </div>
 
-    <!-- MODAL DE ACCESO RESTRINGIDO -->
     <div class="modal-overlay" id="login-modal">
         <div class="password-box">
             <span class="close-btn" onclick="closeModal('login-modal')">X</span>
@@ -324,63 +295,56 @@
     </div>
 
     <script>
-        // CONFIGURACIÓN DE LOS 8 JUGADORES
+        // CONFIGURACIÓN DE LOS 4 JUGADORES DE PRUEBA
+        // José María -> jugador1111 / clave 1111
+        // Migue      -> jugador2222 / clave 2222
+        // Txutxi     -> jugador3333 / clave 3333
+        // Mario      -> jugador4444 / clave 4444
         const players = [
-            { id: 1, name: "Harry Livingstone", login: "hola", photo: "images/jugador1.jpg", job: "Científico", fileId: "interfaz1" },
-            { id: 2, name: "Jason McGee", login: "hola", photo: "images/jugador2.jpg", job: "Coronel", fileId: "interfaz2" },
-            { id: 3, name: "Doc Murray", login: "hola", photo: "images/jugador3.jpg", job: "Doctor", fileId: "interfaz3" },
-            { id: 4, name: "Donnie Sullivan", login: "hola", photo: "images/jugador4.jpg", job: "Cuidador de perros", fileId: "interfaz4" },
-            { id: 5, name: "Charles Dixon", login: "hola", photo: "images/jugador5.jpg", job: "Coronel", fileId: "interfaz5" },
-            { id: 6, name: "Alex Foster", login: "hola", photo: "images/jugador6.jpg", job: "Ingeniero", fileId: "interfaz6" },
-            { id: 7, name: "Steven Hawson", login: "hola", photo: "images/jugador7.jpg", job: "Científico", fileId: "interfaz7" },
-            { id: 8, name: "Leo  Vásquez", login: "hola", photo: "images/jugador8.jpg", job: "Soldado", fileId: "interfaz8" }
+            { id: "jugador1111", name: "José María", login: "1111", photo: "images/josemaria.jpg", job: "Jugador 1" },
+            { id: "jugador2222", name: "Migue",      login: "2222",  photo: "images/migue.jpg", job: "Jugador 2" },
+            { id: "jugador3333", name: "Txutxi",     login: "3333",  photo: "images/txutxi.jpg", job: "Jugador 3" },
+            { id: "jugador4444", name: "Mario",      login: "4444",  photo: "images/mario.jpg", job: "Jugador 4" }
         ];
 
         let selectedPlayer = null;
 
-        // EFECTOS DE AUDIO GENERALES
         function reproducirClick() {
             const clickAudio = new Audio('audio/click.mp3');
             clickAudio.play().catch(e => console.log("Audio prevent:", e));
         }
 
-        // SECUENCIA DE ANIMACIÓN INICIAL
         window.addEventListener('DOMContentLoaded', () => {
             const studioText = document.getElementById('studio-text');
             const zoomContainer = document.getElementById('zoom-container');
             const continueBtn = document.getElementById('continueBtn');
+            const zoomVideo = document.getElementById('zoom-image');
 
-            setTimeout(() => {
-                studioText.style.opacity = '1';
-            }, 600);
+            zoomVideo.load();
+            zoomVideo.play().catch(e => console.log("Auto-play blocked", e));
 
+            setTimeout(() => { studioText.style.opacity = '1'; }, 600);
             setTimeout(() => {
                 studioText.style.opacity = '0';
                 setTimeout(() => {
                     studioText.style.display = 'none';
                     zoomContainer.style.display = 'flex';
-                    setTimeout(() => {
-                        zoomContainer.classList.add('active');
-                    }, 50);
+                    zoomVideo.play().catch(e => {});
+                    setTimeout(() => { zoomContainer.classList.add('active'); }, 50);
                 }, 1000);
             }, 3200);
 
-            setTimeout(() => {
-                continueBtn.style.display = 'block';
-            }, 7000);
-
+            setTimeout(() => { continueBtn.style.display = 'block'; }, 7000);
             renderizarTarjetas();
         });
 
         function startMainMenu() {
             reproducirClick();
-
             const introAudio = new Audio('audio/intro.mp3');
-            introAudio.play().catch(e => console.log("Audio intro prevent:", e));
+            introAudio.play().catch(e => {});
 
             const introOverlay = document.getElementById('intro-overlay');
             introOverlay.style.opacity = '0';
-            
             setTimeout(() => {
                 introOverlay.style.display = 'none';
                 document.getElementById('main-content').classList.add('visible');
@@ -390,16 +354,12 @@
         function renderizarTarjetas() {
             const grid = document.getElementById('character-grid');
             grid.innerHTML = '';
-
             players.forEach(p => {
                 const card = document.createElement('div');
                 card.className = 'char-card';
-                card.onclick = () => {
-                    reproducirClick();
-                    openLogin(p);
-                };
+                card.onclick = () => { reproducirClick(); openLogin(p); };
                 card.innerHTML = `
-                    <img src="${p.photo}" class="char-photo" alt="${p.name}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 24 24\\' fill=\\'%2300ffff\\'><path d=\\'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z\\'/></svg>'">
+                    ${p.photo ? `<img src="${p.photo}" class="char-photo" alt="${p.name}">` : `<div class="char-photo" aria-hidden="true"></div>`}
                     <div class="char-info">
                         <h3>${p.name}</h3>
                         <p>${p.job}</p>
@@ -417,24 +377,29 @@
             document.getElementById('login-input').focus();
         }
 
-        function checkPlayerLogin() {
+function checkPlayerLogin() {
             const val = document.getElementById('login-input').value.trim().toLowerCase();
             
             if (val === selectedPlayer.login.toLowerCase()) {
                 const correctAudio = new Audio('audio/correct.mp3');
-                correctAudio.play().catch(e => console.log("Error audio correct:", e));
+                correctAudio.play().catch(e => {});
                 
-                // GUARDAR EN MEMORIA EL JUGADOR ACTIVO
-                localStorage.setItem('jugador_actual', selectedPlayer.id);
+                // Guardar la identidad activa en memoria local.
+                localStorage.setItem('jugador_activo_global', selectedPlayer.id);
+                localStorage.setItem('jugador_nombre_real', selectedPlayer.name);
 
-                // REDIRIGIR A LA INTERFAZ CORRESPONDIENTE
+                // --- AÑADE ESTA LÍNEA PARA ABRIR ambiente.html EN OTRA PESTAÑA ---
+                window.open('ambiente.html', '_blank');
+
                 setTimeout(() => {
-                    window.location.href = selectedPlayer.fileId + '.html';
+                    // Entrar directamente en interior.html conservando el jugador.
+                    window.location.href = `interior.html?jugador=${encodeURIComponent(selectedPlayer.id)}`;
                 }, 1200);
 
             } else {
                 const nopeAudio = new Audio('audio/nope.mp3');
-                nopeAudio.play().catch(e => console.log("Error audio nope:", e));
+                nopeAudio.path = 'audio/nope.mp3';
+                nopeAudio.play().catch(e => {});
                 document.getElementById('login-error').style.display = 'block';
             }
         }
