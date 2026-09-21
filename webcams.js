@@ -33,26 +33,62 @@
 
     const grid = document.getElementById("video-grid");
     const statusEl = document.getElementById("video-status");
+    // Segundo indicador opcional: si la sala tiene un elemento con este id
+    // (normalmente bajo el texto "IDENTIDAD:" del HUD), también se actualiza.
+    // Si no existe en esta sala, no pasa nada: se ignora silenciosamente.
+    const statusHudEl = document.getElementById("video-status-hud");
+
+    // Estilos para el indicador de "solo audio" (jugador sin cámara).
+    // Se inyectan aquí para no tener que tocar el <style> de cada sala.
+    const estiloAudio = document.createElement("style");
+    estiloAudio.textContent = `
+        .video-audio-icon{
+            display:none;
+            position:absolute;
+            inset:0;
+            align-items:center;
+            justify-content:center;
+            font-size:2rem;
+            color:#00f0ff;
+            background:#03060c;
+        }
+        .video-card.audio-only .video-audio-icon{ display:flex; }
+        .video-card.audio-only video{ display:none; }
+    `;
+    document.head.appendChild(estiloAudio);
 
     function setVideoStatus(text, good = false) {
-        if (!statusEl) return;
-        statusEl.textContent = text;
-        statusEl.style.color = good ? "#5cdb95" : "#5a7d9b";
+        const color = good ? "#5cdb95" : "#5a7d9b";
+        if (statusEl) {
+            statusEl.textContent = text;
+            statusEl.style.color = color;
+        }
+        if (statusHudEl) {
+            statusHudEl.textContent = text;
+            statusHudEl.style.color = color;
+        }
     }
 
-    function addVideoCard(id, name, stream, isLocal = false) {
+    function addVideoCard(id, name, stream, isLocal = false, soloAudioForzado = false) {
         let card = document.getElementById("video-card-" + id);
         if (!card) {
             card = document.createElement("div");
             card.className = "video-card";
             card.id = "video-card-" + id;
-            card.innerHTML = '<video autoplay playsinline></video><div class="video-name"></div>';
+            card.innerHTML = '<video autoplay playsinline></video><div class="video-name"></div><div class="video-audio-icon">🎤</div>';
             grid.appendChild(card);
         }
         const video = card.querySelector("video");
         card.querySelector(".video-name").textContent = name || "Jugador";
         video.muted = isLocal;
         if (stream && video.srcObject !== stream) video.srcObject = stream;
+
+        // Si el stream no trae pista de vídeo (jugador sin cámara), lo marcamos
+        // como "solo audio" para que la tarjeta muestre el icono de micro en vez
+        // de un recuadro negro vacío.
+        const sinVideo = soloAudioForzado || !stream || stream.getVideoTracks().length === 0;
+        card.classList.toggle("audio-only", sinVideo);
+
         updatePlayerCount();
     }
 
@@ -156,8 +192,18 @@
     }
 
     async function startMedia() {
-        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        addVideoCard("local", nombreVisible(jugadorActual) + " (TÚ)", localStream, true);
+        let soloAudio = false;
+        try {
+            // Intento normal: cámara + micro
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        } catch (errorConCamara) {
+            // Sin cámara, cámara ocupada por otra app, o permiso de vídeo denegado:
+            // reintentamos solo con audio en vez de dejar al jugador fuera de la llamada.
+            localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+            soloAudio = true;
+        }
+        addVideoCard("local", nombreVisible(jugadorActual) + " (TÚ)", localStream, true, soloAudio);
+        if (soloAudio) setVideoStatus("Conectado solo con audio", true);
 
         // AVISO si al usuario se le corta la cámara o el micro en pleno directo
         // (permiso revocado, dispositivo desconectado, pestaña dormida, etc.)
@@ -218,7 +264,9 @@
         try {
             await startMedia();
         } catch (error) {
-            setVideoStatus("Cámara bloqueada");
+            // Llega aquí solo si tampoco hay micrófono disponible/permitido,
+            // porque startMedia() ya intenta el audio solo como último recurso.
+            setVideoStatus("Sin cámara ni micrófono");
             return;
         }
         isHost = true;
