@@ -499,6 +499,9 @@ function reproducirClick() {
 }
 
 function entrarPorPuerta() {
+  if (typeof salirDeLaLlamada === "function") {
+    salirDeLaLlamada(false);
+  }
   try {
     openDoorAudio.currentTime = 0;
     const p = openDoorAudio.play();
@@ -509,7 +512,6 @@ function entrarPorPuerta() {
     window.location.href = urlConJugador("interior.html");
   }, 2000);
 }
-
 function handleHotspotClick(hs) {
   if (hs.action === "go") {
     entrarPorPuerta();
@@ -704,7 +706,7 @@ function actualizarIdentidadJugador() {
         } catch (e) {}
       }
     }
-    localStorage.setItem('jugador_nombre_real', jugadorActual);
+localStorage.setItem('jugador_nombre_real', nombreVisible(jugadorActual));
   } catch (e) {
     if (jugadorUrl && jugadorUrl.trim() !== "") jugadorActual = jugadorUrl.trim();
   }
@@ -731,6 +733,26 @@ actualizarIdentidadJugador();
 <script>
     const VIDEO_ROOM = "outpost31_exterior";
 </script>
+
+
+
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+    firebase.initializeApp({
+        apiKey: "AIzaSyBaOWXGJKly57ZMRIlXjEjRpAe0TDtvLJA",
+        authDomain: "outpost31-73106.firebaseapp.com",
+        databaseURL: "https://outpost31-73106-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "outpost31-73106",
+        storageBucket: "outpost31-73106.firebasestorage.app",
+        messagingSenderId: "121769114214",
+        appId: "1:121769114214:web:c65bf425fd326a6c850ba7"
+    });
+</script>
+
+
+
 <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
 <script src="webcams.js"></script>
 
