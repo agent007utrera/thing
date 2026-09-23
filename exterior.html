@@ -6,6 +6,28 @@
 <title>Exterior</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
+.video-controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+.video-controls button {
+    background: #08111e;
+    border: 1px solid #1a3a5c;
+    color: #00f0ff;
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.video-controls button.off {
+    background: #2a0a0a;
+    border-color: #ff3355;
+    color: #ff3355;
+}
 /* =========================================================
    ESTILOS GENERALES
    ========================================================= */
@@ -295,10 +317,14 @@ canvas.drag{ cursor:grabbing; }
 
   <!-- COLUMNA DERECHA: barra lateral de webcams -->
   <aside class="video-sidebar">
-    <div class="video-header">
-      EXTERIOR
-      <span id="video-status">Conectando...</span>
+<div class="video-header">
+    EXTERIOR
+    <span id="video-status">Conectando...</span>
+    <div class="video-controls">
+        <button id="btnMic" onclick="toggleMicrofono()">🎤</button>
+        <button id="btnCam" onclick="toggleCamara()">📷</button>
     </div>
+</div>
     <div id="video-grid"></div>
     <p class="aforo-aviso">EXTERIOR</p>
   </aside>

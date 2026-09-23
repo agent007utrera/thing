@@ -43,6 +43,8 @@
     let peer = null;
     let localStream = null;
     let destroyed = false;
+let micActivo = true;
+let camActiva = true;
 
     let db = null;
     let roomRef = null;
@@ -336,6 +338,28 @@
         createPeer();
     }
 
+function toggleMicrofono() {
+    if (!localStream) return;
+    micActivo = !micActivo;
+    localStream.getAudioTracks().forEach(track => track.enabled = micActivo);
+    const btn = document.getElementById("btnMic");
+    if (btn) btn.classList.toggle("off", !micActivo);
+}
+
+function toggleCamara() {
+    if (!localStream) return;
+    camActiva = !camActiva;
+    localStream.getVideoTracks().forEach(track => track.enabled = camActiva);
+    const btn = document.getElementById("btnCam");
+    if (btn) btn.classList.toggle("off", !camActiva);
+    // Refleja el estado en tu propia tarjeta local (icono de "solo audio")
+    const localCard = document.getElementById("video-card-local");
+    if (localCard) localCard.classList.toggle("audio-only", !camActiva);
+}
+
+
+
+
     function salirDeLaLlamada(navigate = true) {
         destroyed = true;
 
@@ -362,6 +386,8 @@
     // puerta, etc.) las llama directamente.
     window.salirDeLaLlamada = salirDeLaLlamada;
     window.iniciarVideollamada = iniciarVideollamada;
+window.toggleMicrofono = toggleMicrofono;
+window.toggleCamara = toggleCamara;
 
     iniciarVideollamada();
 })();
