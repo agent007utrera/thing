@@ -6,28 +6,34 @@
 <title>Exterior</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
-.video-controls {
+
+
+.video-header-row {
     display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-top: 6px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
 }
 
-.video-controls button {
+.video-header-row button {
     background: #08111e;
     border: 1px solid #1a3a5c;
     color: #00f0ff;
     border-radius: 4px;
-    padding: 4px 10px;
-    font-size: 1rem;
+    padding: 2px 8px;
+    font-size: 0.9rem;
     cursor: pointer;
+    flex-shrink: 0;
 }
 
-.video-controls button.off {
+.video-header-row button.off {
     background: #2a0a0a;
     border-color: #ff3355;
     color: #ff3355;
 }
+
+
+
 /* =========================================================
    ESTILOS GENERALES
    ========================================================= */
@@ -317,14 +323,18 @@ canvas.drag{ cursor:grabbing; }
 
   <!-- COLUMNA DERECHA: barra lateral de webcams -->
   <aside class="video-sidebar">
+
+
 <div class="video-header">
-    EXTERIOR
-    <span id="video-status">Conectando...</span>
-    <div class="video-controls">
+    <div class="video-header-row">
         <button id="btnMic" onclick="toggleMicrofono()">🎤</button>
+        <span>EXTERIOR</span>
         <button id="btnCam" onclick="toggleCamara()">📷</button>
     </div>
+    <span id="video-status">Conectando...</span>
 </div>
+
+
     <div id="video-grid"></div>
     <p class="aforo-aviso">EXTERIOR</p>
   </aside>
