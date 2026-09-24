@@ -166,25 +166,25 @@ canvas.drag{ cursor:grabbing; }
   font-size:0.68rem;
 }
 
-#video-grid{
-  flex:1;
-  overflow-y:auto;
-  padding:8px;
-  display:grid;
-  grid-template-columns:repeat(2, 1fr); /* exactamente 2 columnas iguales */
-  gap:8px;                              /* separación entre webcams */
-  align-content:start;                  /* filas ordenadas hacia arriba */
+#video-grid {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
-.video-card{
-  position:relative;
-  width:100%;
-  aspect-ratio:4 / 3; /* proporción clásica de cámara */
-  background:#000;
-  border:1px solid #1a3a5c;
-  border-radius:4px;
-  overflow:hidden;
+.video-card {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background: #000;
+    border: 1px solid #1a3a5c;
+    border-radius: 4px;
+    overflow: hidden;
 }
+
 
 .video-card video{
   width:100%;
