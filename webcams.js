@@ -10,7 +10,7 @@
 //        <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 //        <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 //        <script>
-//          firebase.initializeApp({ ...tu configuración de Firebase... });
+//          const FIREBASE_CONFIG = { ...tu configuración de Firebase... };
 //        </script>
 //        <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
 //        <script src="webcams.js"></script>
@@ -43,16 +43,35 @@
     let peer = null;
     let localStream = null;
     let destroyed = false;
-let micActivo = true;
-let camActiva = true;
+    let micActivo = true;
+    let camActiva = true;
+    let sinCamaraDesdeInicio = false;
 
     let db = null;
     let roomRef = null;
     let myPresenceRef = null;
 
     const peerNames = {};              // peerId -> nombre visible
+    const peerCamOff = {};             // peerId -> true si tiene la cámara apagada
     const activeCalls = new Map();     // peerId -> MediaConnection
     const retryCount = new Map();      // peerId -> nº de reintentos tras fallo real
+
+    const FOTOS_PERSONAJE = {
+        "JOSÉ MARÍA": "images/josemaria.jpg",
+        "MIGUE": "images/migue.jpg",
+        "TXUTXI": "images/txutxi.jpg",
+        "MARIO": "images/mario.jpg",
+        "CHARLES DIXON": "images/f_dixon.jpg",
+        "ALEX FOSTER": "images/f_foster.jpg",
+        "STEVEN DAWSON": "images/f_dawson.jpg",
+        "LEO VÁSQUEZ": "images/f_vasquez.jpg"
+    };
+
+    function fotoDeJugador(name) {
+        if (!name) return null;
+        const nombreLimpio = name.replace(/\s*\(.*?\)\s*$/, '').toUpperCase();
+        return FOTOS_PERSONAJE[nombreLimpio] || null;
+    }
 
     const MAX_RETRIES = 5;
     const RETRY_BASE_DELAY_MS = 2000;
@@ -74,8 +93,18 @@ let camActiva = true;
             color:#00f0ff;
             background:#03060c;
         }
+        .video-fallback-photo{
+            display:none;
+            position:absolute;
+            inset:0;
+            width:100%;
+            height:100%;
+            object-fit:cover;
+        }
         .video-card.audio-only .video-audio-icon{ display:flex; }
         .video-card.audio-only video{ display:none; }
+        .video-card.audio-only.has-photo .video-audio-icon{ display:none; }
+        .video-card.audio-only.has-photo .video-fallback-photo{ display:block; }
     `;
     document.head.appendChild(estiloAudio);
 
@@ -125,7 +154,7 @@ let camActiva = true;
             card = document.createElement("div");
             card.className = "video-card";
             card.id = "video-card-" + id;
-            card.innerHTML = '<video autoplay playsinline></video><div class="video-name"></div><div class="video-audio-icon">🎤</div>';
+            card.innerHTML = '<video autoplay playsinline></video><img class="video-fallback-photo" alt=""><div class="video-name"></div><div class="video-audio-icon">🎤</div>';
             grid.appendChild(card);
         }
         const video = card.querySelector("video");
@@ -138,6 +167,12 @@ let camActiva = true;
 
         const sinVideo = soloAudioForzado || !stream || stream.getVideoTracks().length === 0;
         card.classList.toggle("audio-only", sinVideo);
+
+        const foto = fotoDeJugador(finalName);
+        card.classList.toggle("has-photo", sinVideo && !!foto);
+        const fotoImg = card.querySelector(".video-fallback-photo");
+        if (fotoImg) fotoImg.src = foto || "";
+
         updatePlayerCount();
     }
 
@@ -172,7 +207,7 @@ let camActiva = true;
     function wireUpCall(call, id) {
         call.on("stream", stream => {
             retryCount.set(id, 0); // llamada OK: reseteamos los reintentos
-            addVideoCard(id, peerNames[id] || "Jugador", stream, false);
+            addVideoCard(id, peerNames[id] || "Jugador", stream, false, !!peerCamOff[id]);
         });
 
         const onEnded = () => {
@@ -212,6 +247,7 @@ let camActiva = true;
     function handlePeerJoined(id, data) {
         if (!peer || id === peer.id) return;
         peerNames[id] = (data && data.name) || "Jugador";
+        peerCamOff[id] = !!(data && data.camOff);
         retryCount.set(id, 0);
         if (shouldICall(id)) callPeer(id);
         // Si no me toca llamar, simplemente espero su llamada (peer.on("call")).
@@ -222,11 +258,23 @@ let camActiva = true;
         const name = (data && data.name) || "Jugador";
         peerNames[id] = name;
         updateCardName(id, name);
+
+        const camOff = !!(data && data.camOff);
+        peerCamOff[id] = camOff;
+        const card = document.getElementById("video-card-" + id);
+        if (card) {
+            card.classList.toggle("audio-only", camOff);
+            const foto = fotoDeJugador(name);
+            card.classList.toggle("has-photo", camOff && !!foto);
+            const fotoImg = card.querySelector(".video-fallback-photo");
+            if (fotoImg && foto) fotoImg.src = foto;
+        }
     }
 
     function handlePeerLeft(id) {
         if (!peer || id === peer.id) return;
         delete peerNames[id];
+        delete peerCamOff[id];
         retryCount.delete(id);
         const call = activeCalls.get(id);
         if (call) { try { call.close(); } catch (_) {} }
@@ -248,11 +296,11 @@ let camActiva = true;
             myPresenceRef.onDisconnect().remove().then(() => {
                 myPresenceRef.set({
                     name: getMyDisplayName(),
+                    camOff: sinCamaraDesdeInicio || !camActiva,
                     ts: firebase.database.ServerValue.TIMESTAMP
                 });
             });
         });
-
         roomRef.on("child_added", snap => handlePeerJoined(snap.key, snap.val()));
         roomRef.on("child_changed", snap => handlePeerChanged(snap.key, snap.val()));
         roomRef.on("child_removed", snap => handlePeerLeft(snap.key));
@@ -270,6 +318,31 @@ let camActiva = true;
         }, 1500);
     }
 
+    function toggleMicrofono() {
+        if (!localStream) return;
+        micActivo = !micActivo;
+        localStream.getAudioTracks().forEach(track => track.enabled = micActivo);
+        const btn = document.getElementById("btnMic");
+        if (btn) btn.classList.toggle("off", !micActivo);
+    }
+
+    function toggleCamara() {
+        if (!localStream) return;
+        camActiva = !camActiva;
+        localStream.getVideoTracks().forEach(track => track.enabled = camActiva);
+        const btn = document.getElementById("btnCam");
+        if (btn) btn.classList.toggle("off", !camActiva);
+        const localCard = document.getElementById("video-card-local");
+        if (localCard) {
+            localCard.classList.toggle("audio-only", !camActiva);
+            const foto = fotoDeJugador(getMyDisplayName());
+            localCard.classList.toggle("has-photo", !camActiva && !!foto);
+        }
+        if (myPresenceRef) {
+            myPresenceRef.update({ camOff: sinCamaraDesdeInicio || !camActiva }).catch(() => {});
+        }
+    }
+
     // ---------- media ----------
     async function startMedia() {
         let soloAudio = false;
@@ -279,6 +352,7 @@ let camActiva = true;
             localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
             soloAudio = true;
         }
+        sinCamaraDesdeInicio = soloAudio;
         addVideoCard("local", getMyDisplayName() + " (TÚ)", localStream, true, soloAudio);
         if (soloAudio) setVideoStatus("Conectado solo con audio", true);
 
@@ -338,28 +412,6 @@ let camActiva = true;
         createPeer();
     }
 
-function toggleMicrofono() {
-    if (!localStream) return;
-    micActivo = !micActivo;
-    localStream.getAudioTracks().forEach(track => track.enabled = micActivo);
-    const btn = document.getElementById("btnMic");
-    if (btn) btn.classList.toggle("off", !micActivo);
-}
-
-function toggleCamara() {
-    if (!localStream) return;
-    camActiva = !camActiva;
-    localStream.getVideoTracks().forEach(track => track.enabled = camActiva);
-    const btn = document.getElementById("btnCam");
-    if (btn) btn.classList.toggle("off", !camActiva);
-    // Refleja el estado en tu propia tarjeta local (icono de "solo audio")
-    const localCard = document.getElementById("video-card-local");
-    if (localCard) localCard.classList.toggle("audio-only", !camActiva);
-}
-
-
-
-
     function salirDeLaLlamada(navigate = true) {
         destroyed = true;
 
@@ -386,8 +438,8 @@ function toggleCamara() {
     // puerta, etc.) las llama directamente.
     window.salirDeLaLlamada = salirDeLaLlamada;
     window.iniciarVideollamada = iniciarVideollamada;
-window.toggleMicrofono = toggleMicrofono;
-window.toggleCamara = toggleCamara;
+    window.toggleMicrofono = toggleMicrofono;
+    window.toggleCamara = toggleCamara;
 
     iniciarVideollamada();
 })();
