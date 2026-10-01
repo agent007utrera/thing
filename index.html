@@ -295,16 +295,18 @@
     </div>
 
     <script>
-        // CONFIGURACIÓN DE LOS 4 JUGADORES DE PRUEBA
-        // José María -> jugador1111 / clave 1111
-        // Migue      -> jugador2222 / clave 2222
-        // Txutxi     -> jugador3333 / clave 3333
-        // Mario      -> jugador4444 / clave 4444
+        // CONFIGURACIÓN DE LOS 8 JUGADORES
+        // jugador1111..jugador8888 / clave 1111..8888
+        // Cambia "name" y "photo" de los jugadores 5-8 por los reales.
         const players = [
-            { id: "jugador1111", name: "José María", login: "1111", photo: "images/josemaria.jpg", job: "Jugador 1" },
-            { id: "jugador2222", name: "Migue",      login: "2222",  photo: "images/migue.jpg", job: "Jugador 2" },
-            { id: "jugador3333", name: "Txutxi",     login: "3333",  photo: "images/txutxi.jpg", job: "Jugador 3" },
-            { id: "jugador4444", name: "Mario",      login: "4444",  photo: "images/mario.jpg", job: "Jugador 4" }
+            { id: "jugador1111", name: "José María", login: "1111", photo: "images/f_livingstone.jpg", job: "Científico" },
+            { id: "jugador2222", name: "Migue",      login: "2222", photo: "images/f_mcgee.jpg",     job: "Coronel" },
+            { id: "jugador3333", name: "Txutxi",     login: "3333", photo: "images/f_murray.jpg",    job: "Doctor" },
+            { id: "jugador4444", name: "Mario",      login: "4444", photo: "images/f_sullivan.jpg",     job: "Encargado de la perrera" },
+            { id: "jugador5555", name: "Jugador 5",  login: "5555", photo: "images/f_dixon.jpg",   job: "Comandante" },
+            { id: "jugador6666", name: "Jugador 6",  login: "6666", photo: "images/f_foster.jpg",                     job: "Ingeniero" },
+            { id: "jugador7777", name: "Jugador 7",  login: "7777", photo: "images/f_dawson.jpg",                     job: "Científico" },
+            { id: "jugador8888", name: "Jugador 8",  login: "8888", photo: "images/f_vasquez.jpg",                     job: "Piloto" }
         ];
 
         let selectedPlayer = null;
