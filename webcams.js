@@ -57,12 +57,12 @@
     const retryCount = new Map();      // peerId -> nº de reintentos tras fallo real
 
     const FOTOS_PERSONAJE = {
-        "JOSÉ MARÍA": "images/josemaria.jpg",
-        "MIGUE": "images/migue.jpg",
-        "TXUTXI": "images/txutxi.jpg",
-        "MARIO": "images/mario.jpg",
-        "CHARLES DIXON": "images/f_dixon.jpg",
-        "ALEX FOSTER": "images/f_foster.jpg",
+        "JOSÉ MARÍA": "images/f_josemaria.jpg",
+        "MIGUE": "images/f_migue.jpg",
+        "TXUTXI": "images/f_txutxi.jpg",
+        "MARIO": "images/f_mario.jpg",
+        "SERGIO": "images/f_sergio.jpg",
+        "DANI": "images/f_dani.jpg",
         "STEVEN DAWSON": "images/f_dawson.jpg",
         "LEO VÁSQUEZ": "images/f_vasquez.jpg"
     };
