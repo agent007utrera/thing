@@ -63,7 +63,7 @@
         "MARIO": "images/f_mario.jpg",
         "SERGIO": "images/f_sergio.jpg",
         "DANI": "images/f_dani.jpg",
-        "STEVEN DAWSON": "images/f_dawson.jpg",
+        "FER": "images/f_fer.jpg",
         "LEO VÁSQUEZ": "images/f_vasquez.jpg"
     };
 
